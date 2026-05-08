@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LeanAI.Application/LeanAI.Application.csproj" />
+    <Project Path="src/LeanAI.Domain/LeanAI.Domain.csproj" />
+    <Project Path="src/LeanAI.Infrastructure/LeanAI.Infrastructure.csproj" />
+    <Project Path="src/LeanAI.Maui/LeanAI.Maui.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LeanAI.Tests/LeanAI.Tests.csproj" />
+  </Folder>
+</Solution>
