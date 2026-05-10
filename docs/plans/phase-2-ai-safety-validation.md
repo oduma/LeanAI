@@ -360,7 +360,7 @@ Add `ProvisionGeminiKeyAsync()` and call it inside `ShowWizardIfNeededAsync()` (
 private const string GeminiKeyStorageKey = "gemini_key";
 // Bootstrap value — stored in SecureStorage on first launch only.
 // On subsequent launches the SecureStorage value is used and this constant is not read.
-private const string GeminiBootstrapKey  = "AIzaSyB89Doqu3Pekm74qqxjjVyxGR8NdUfgTEA";
+private const string GeminiBootstrapKey  = "xxx";
 
 protected override Window CreateWindow(IActivationState? activationState)
 {
