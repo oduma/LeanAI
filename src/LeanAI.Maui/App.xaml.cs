@@ -1,4 +1,5 @@
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
+using LeanAI.Infrastructure;
 using LeanAI.Maui.Views.Wizard;
 using MediatR;
 
@@ -8,6 +9,11 @@ public partial class App : Microsoft.Maui.Controls.Application
 {
     private readonly IMediator _mediator;
     private readonly IServiceProvider _services;
+
+    // Bootstrap value stored in SecureStorage on first launch only.
+    // On subsequent launches the value comes from SecureStorage (Android Keystore).
+    private const string GeminiKeyStorageKey = "gemini_key";
+    private const string GeminiBootstrapKey  = "AIzaSyB89Doqu3Pekm74qqxjjVyxGR8NdUfgTEA";
 
     public App(IMediator mediator, IServiceProvider services)
     {
@@ -19,8 +25,23 @@ public partial class App : Microsoft.Maui.Controls.Application
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(new AppShell());
-        window.Created += async (_, _) => await ShowWizardIfNeededAsync();
+        window.Created += async (_, _) =>
+        {
+            await ProvisionGeminiKeyAsync();
+            await ShowWizardIfNeededAsync();
+        };
         return window;
+    }
+
+    private async Task ProvisionGeminiKeyAsync()
+    {
+        var key = await SecureStorage.GetAsync(GeminiKeyStorageKey);
+        if (string.IsNullOrEmpty(key))
+        {
+            key = GeminiBootstrapKey;
+            await SecureStorage.SetAsync(GeminiKeyStorageKey, key);
+        }
+        _services.SetGeminiApiKey(key);
     }
 
     private async Task ShowWizardIfNeededAsync()

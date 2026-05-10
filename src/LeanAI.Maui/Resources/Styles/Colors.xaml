@@ -10,6 +10,8 @@
     <Color x:Key="ColorText">#F0F2F5</Color>
     <Color x:Key="ColorCopper">#D28B5C</Color>
     <Color x:Key="ColorNickel">#9A9EAB</Color>
+    <Color x:Key="ColorAmber">#E8A838</Color>
+    <Color x:Key="ColorDanger">#C0392B</Color>
 
     <Color x:Key="Primary">#512BD4</Color>
     <Color x:Key="PrimaryDark">#ac99ea</Color>

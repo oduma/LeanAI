@@ -2,7 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using LeanAI.Application.WeightManagement.Commands.SaveUserProfile;
+using LeanAI.Application.WeightManagement.DTOs;
+using LeanAI.Application.WeightManagement.Enums;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
+using LeanAI.Application.WeightManagement.Queries.ValidateGoal;
 using LeanAI.Domain.WeightManagement.Enums;
 using LeanAI.Domain.WeightManagement.Services;
 using LeanAI.Maui.Messages;
@@ -17,6 +20,7 @@ public partial class WizardViewModel : ObservableObject
 {
     private readonly IMediator _mediator;
     private CancellationTokenSource? _debounceCts;
+    private CancellationTokenSource? _validationCts;
 
     public WizardViewModel(IMediator mediator)
     {
@@ -45,6 +49,42 @@ public partial class WizardViewModel : ObservableObject
 
     // Back button is visible on steps 2-3 always; on step 1 only during re-run
     public bool IsBackVisible => CurrentStep > 1 || IsRerun;
+
+    // ── Step 3: AI goal validation ────────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isValidating;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ValidationIconSource))]
+    [NotifyPropertyChangedFor(nameof(ValidationTextColor))]
+    [NotifyPropertyChangedFor(nameof(HasValidationResult))]
+    [NotifyPropertyChangedFor(nameof(ShowAiDisclaimer))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
+    private GoalValidationStatus? _validationStatus;
+
+    [ObservableProperty]
+    private string _validationMessage = string.Empty;
+
+    public bool HasValidationResult => ValidationStatus.HasValue;
+
+    public bool ShowAiDisclaimer =>
+        ValidationStatus == GoalValidationStatus.Warning ||
+        ValidationStatus == GoalValidationStatus.Danger;
+
+    public string ValidationIconSource => ValidationStatus switch
+    {
+        GoalValidationStatus.Warning => "icon_warning.svg",
+        GoalValidationStatus.Danger  => "icon_stop.svg",
+        _                            => string.Empty
+    };
+
+    public Color ValidationTextColor => ValidationStatus switch
+    {
+        GoalValidationStatus.Warning => Color.FromArgb("#E8A838"),
+        GoalValidationStatus.Danger  => Color.FromArgb("#C0392B"),
+        _                            => Colors.Transparent
+    };
 
     // ── Step 1: Unit system ───────────────────────────────────────────────────
 
@@ -157,7 +197,7 @@ public partial class WizardViewModel : ObservableObject
     {
         1 => true,
         2 => IsStep2Valid(),
-        3 => IsStep3Valid(),
+        3 => IsStep3Valid() && ValidationStatus == GoalValidationStatus.Safe,
         _ => false
     };
 
@@ -165,17 +205,71 @@ public partial class WizardViewModel : ObservableObject
 
     public void PrepareForRerun()
     {
-        IsRerun          = true;
-        CurrentStep      = 1;
-        UnitSystem       = UnitSystem.Metric;
-        Gender           = null;
-        AgeText          = string.Empty;
-        HeightCmText     = string.Empty;
-        HeightFeetText   = string.Empty;
-        HeightInchesText = string.Empty;
+        IsRerun           = true;
+        CurrentStep       = 1;
+        UnitSystem        = UnitSystem.Metric;
+        Gender            = null;
+        AgeText           = string.Empty;
+        HeightCmText      = string.Empty;
+        HeightFeetText    = string.Empty;
+        HeightInchesText  = string.Empty;
         StartingWeightText = string.Empty;
-        TargetWeightText = string.Empty;
-        TargetPeriod     = null;
+        TargetWeightText  = string.Empty;
+        TargetPeriod      = null;
+        ValidationStatus  = null;
+        ValidationMessage = string.Empty;
+    }
+
+    // ── AI validation ─────────────────────────────────────────────────────────
+
+    partial void OnTargetWeightTextChanged(string value) => TriggerValidationDebounce();
+    partial void OnTargetPeriodChanged(TargetPeriod? value) => TriggerValidationDebounce();
+
+    private void TriggerValidationDebounce()
+    {
+        if (CurrentStep != 3) return;
+
+        _validationCts?.Cancel();
+        ValidationStatus  = null;
+        ValidationMessage = string.Empty;
+
+        if (!IsStep3Valid()) return;
+
+        _validationCts = new CancellationTokenSource();
+        var token = _validationCts.Token;
+
+        Task.Delay(500, token).ContinueWith(
+            t => { if (!t.IsCanceled) MainThread.BeginInvokeOnMainThread(() => _ = ValidateGoalAsync()); },
+            TaskScheduler.Default);
+    }
+
+    private async Task ValidateGoalAsync()
+    {
+        if (!IsStep3Valid()) return;
+
+        _ = int.TryParse(AgeText, out var age);
+        var heightCm         = ParseHeightCm();
+        var startingWeightKg = ParseWeightToKg(StartingWeightText);
+        var targetWeightKg   = ParseWeightToKg(TargetWeightText);
+
+        if (!Gender.HasValue || age <= 0 || !heightCm.HasValue
+            || !startingWeightKg.HasValue || !targetWeightKg.HasValue || !TargetPeriod.HasValue)
+            return;
+
+        IsValidating = true;
+        try
+        {
+            var result = await _mediator.Send(new ValidateGoalQuery(
+                Gender.Value, age, heightCm.Value,
+                startingWeightKg.Value, targetWeightKg.Value, TargetPeriod.Value));
+
+            ValidationStatus  = result.Status;
+            ValidationMessage = result.Message;
+        }
+        finally
+        {
+            IsValidating = false;
+        }
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
