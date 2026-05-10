@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Messaging;
+using LeanAI.Maui.Messages;
 using LeanAI.Maui.ViewModels;
 
 namespace LeanAI.Maui.Views.Wizard;
@@ -6,6 +7,8 @@ namespace LeanAI.Maui.Views.Wizard;
 public partial class WizardPage : ContentPage
 {
     private readonly WizardViewModel _viewModel;
+
+    public WizardViewModel ViewModel => _viewModel;
 
     public WizardPage(WizardViewModel viewModel)
     {
@@ -16,13 +19,20 @@ public partial class WizardPage : ContentPage
         WeakReferenceMessenger.Default.Register<WizardCompletedMessage>(this, async (_, _) =>
             await OnWizardCompleted());
 
+        WeakReferenceMessenger.Default.Register<WizardDismissedMessage>(this, async (_, m) =>
+        {
+            if (!m.Completed)
+                await Navigation.PopModalAsync();
+        });
+
         WireDebounce();
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _viewModel.LoadExistingAsync();
+        if (!_viewModel.IsRerun)
+            await _viewModel.LoadExistingAsync();
     }
 
     private void WireDebounce()
@@ -45,5 +55,6 @@ public partial class WizardPage : ContentPage
     {
         base.OnDisappearing();
         WeakReferenceMessenger.Default.Unregister<WizardCompletedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<WizardDismissedMessage>(this);
     }
 }

@@ -220,7 +220,7 @@
                 BackgroundColor="#333333"
                 TextColor="{StaticResource ColorText}"
                 CornerRadius="12"
-                IsVisible="{Binding IsStep1, Converter={StaticResource InverseBoolConverter}}" />
+                IsVisible="{Binding IsBackVisible}" />
             <Button
                 Grid.Column="1"
                 Text="{Binding IsStep3, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Done|Next'}"

@@ -29,4 +29,14 @@ public class UserProfileRepository(LeanAIDbContext context) : IUserProfileReposi
 
         await context.SaveChangesAsync(ct);
     }
+
+    public async Task DeleteAsync(CancellationToken ct = default)
+    {
+        var profile = await context.UserProfiles.FirstOrDefaultAsync(ct);
+        if (profile is not null)
+        {
+            context.UserProfiles.Remove(profile);
+            await context.SaveChangesAsync(ct);
+        }
+    }
 }

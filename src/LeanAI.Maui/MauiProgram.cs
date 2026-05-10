@@ -42,6 +42,7 @@ public static class MauiProgram
 
         // ViewModels
         builder.Services.AddTransient<WizardViewModel>();
+        builder.Services.AddTransient<SettingsViewModel>();
 
 #if DEBUG
         builder.Logging.AddDebug();

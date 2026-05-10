@@ -7,22 +7,22 @@
     xmlns:trends="clr-namespace:LeanAI.Maui.Views.Trends"
     xmlns:settings="clr-namespace:LeanAI.Maui.Views.Settings"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#222222">
+    BackgroundColor="{StaticResource ColorBase}">
 
     <TabBar>
         <ShellContent
             Title="Log"
-            Icon="log_tab.png"
+            Icon="log_tab.svg"
             ContentTemplate="{DataTemplate log:LogPage}"
             Route="Log" />
         <ShellContent
             Title="Trends"
-            Icon="trends_tab.png"
+            Icon="trends_tab.svg"
             ContentTemplate="{DataTemplate trends:TrendsPage}"
             Route="Trends" />
         <ShellContent
             Title="Settings"
-            Icon="settings_tab.png"
+            Icon="settings_tab.svg"
             ContentTemplate="{DataTemplate settings:SettingsPage}"
             Route="Settings" />
     </TabBar>

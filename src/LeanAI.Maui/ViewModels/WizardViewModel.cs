@@ -5,6 +5,7 @@ using LeanAI.Application.WeightManagement.Commands.SaveUserProfile;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
 using LeanAI.Domain.WeightManagement.Enums;
 using LeanAI.Domain.WeightManagement.Services;
+using LeanAI.Maui.Messages;
 using MediatR;
 
 using DomainGender = LeanAI.Domain.WeightManagement.Enums.Gender;
@@ -28,13 +29,22 @@ public partial class WizardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsStep1))]
     [NotifyPropertyChangedFor(nameof(IsStep2))]
     [NotifyPropertyChangedFor(nameof(IsStep3))]
+    [NotifyPropertyChangedFor(nameof(IsBackVisible))]
     [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     [NotifyCanExecuteChangedFor(nameof(BackCommand))]
     private int _currentStep = 1;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBackVisible))]
+    [NotifyCanExecuteChangedFor(nameof(BackCommand))]
+    private bool _isRerun;
+
     public bool IsStep1 => CurrentStep == 1;
     public bool IsStep2 => CurrentStep == 2;
     public bool IsStep3 => CurrentStep == 3;
+
+    // Back button is visible on steps 2-3 always; on step 1 only during re-run
+    public bool IsBackVisible => CurrentStep > 1 || IsRerun;
 
     // ── Step 1: Unit system ───────────────────────────────────────────────────
 
@@ -112,9 +122,18 @@ public partial class WizardViewModel : ObservableObject
     // ── Navigation commands ───────────────────────────────────────────────────
 
     [RelayCommand(CanExecute = nameof(CanGoBack))]
-    private void Back() => CurrentStep--;
+    private void Back()
+    {
+        if (IsRerun && CurrentStep == 1)
+        {
+            // Signal cancellation — WizardPage will pop the modal, SettingsViewModel will restore
+            WeakReferenceMessenger.Default.Send(new WizardDismissedMessage(Completed: false));
+            return;
+        }
+        CurrentStep--;
+    }
 
-    private bool CanGoBack() => CurrentStep > 1;
+    private bool CanGoBack() => CurrentStep > 1 || IsRerun;
 
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private async Task Next()
@@ -127,7 +146,10 @@ public partial class WizardViewModel : ObservableObject
         else
         {
             await SaveCurrentStateAsync();
+            // Notify page to pop the modal (existing first-run path)
             WeakReferenceMessenger.Default.Send(new WizardCompletedMessage());
+            // Notify SettingsViewModel that wizard completed successfully (re-run path)
+            WeakReferenceMessenger.Default.Send(new WizardDismissedMessage(Completed: true));
         }
     }
 
@@ -138,6 +160,23 @@ public partial class WizardViewModel : ObservableObject
         3 => IsStep3Valid(),
         _ => false
     };
+
+    // ── Re-run mode ───────────────────────────────────────────────────────────
+
+    public void PrepareForRerun()
+    {
+        IsRerun          = true;
+        CurrentStep      = 1;
+        UnitSystem       = UnitSystem.Metric;
+        Gender           = null;
+        AgeText          = string.Empty;
+        HeightCmText     = string.Empty;
+        HeightFeetText   = string.Empty;
+        HeightInchesText = string.Empty;
+        StartingWeightText = string.Empty;
+        TargetWeightText = string.Empty;
+        TargetPeriod     = null;
+    }
 
     // ── Validation ────────────────────────────────────────────────────────────
 

@@ -12,6 +12,30 @@
     - Implement "Preserve over Purge" data policy (User data survives app updates).
 - **Definition of Done (DoD):** App launches, Wizard saves complete profile to SQLite, and the solution is "Runnable" on Android.
 
+## Phase 1.5: Settings Screen (The Control Panel)
+- **Goal:** Provide a functional Settings screen accessible from the bottom nav bar, starting with the ability to reset the user profile and re-run the Setup Wizard.
+- **Functional Requirements:**
+    - **Gear Icon Tab:** The Settings tab in the bottom tab bar displays a gear icon. The icon renders in its active (Copper) state when the Settings screen is the current tab, and in its inactive (Nickel) state otherwise. This replaces any generic placeholder tab icon.
+    - **Re-Run the Setup Action:** The Settings screen contains a tappable action row with:
+        - **Primary label:** "Re-Run the Setup"
+        - **Subtitle:** "Your stats and your goals will be deleted!"
+        - Subtitle is styled in Nickel (#9A9EAB) to communicate destructive intent without using a separate warning color.
+    - **Reset Flow:** When the action row is tapped:
+        1. The existing `UserProfile` record is deleted from SQLite.
+        2. The Setup Wizard is pushed modally over the Shell (identical to first-launch behavior).
+        3. On wizard completion the new profile is saved; the wizard is dismissed and the Shell resumes.
+- **Technical Specs:**
+    - Add `DeleteUserProfileCommand` / `DeleteUserProfileCommandHandler` in the Application layer (MediatR `IRequest<Unit>`). Handler calls a new `DeleteAsync` method on `IUserProfileRepository` (deletes the single row if it exists).
+    - `SettingsViewModel` (CommunityToolkit.Mvvm) exposes a `[RelayCommand] Task ReRunSetupAsync()` that: (a) sends `DeleteUserProfileCommand`, (b) resolves `WizardPage` from `IServiceProvider`, (c) pushes it modally via `Shell.Current.Navigation`.
+    - Active/inactive tab icon state is achieved by supplying two icon assets (`settings_tab.png` for inactive, `settings_tab_active.png` for active) and binding the Shell tab's icon to the active state via `Shell.TabBarSelectedColor` / `ShellContent` properties, or by using two SVG assets with the correct fill colors baked in and wired to MAUI Shell's selected-tab icon override.
+    - No new DB migration is required — `DeleteAsync` operates on the existing `UserProfiles` table.
+- **DoD:**
+    - Settings tab gear icon is Copper when active, Nickel when inactive.
+    - Tapping "Re-Run the Setup" deletes the profile and launches the Wizard.
+    - Completing the wizard from the re-run saves the new profile and returns to the Shell.
+    - All existing Application-layer tests still pass; new `DeleteUserProfileCommandHandler` tests added with 100% branch coverage.
+    - `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all tests green.
+
 ## Phase 2: AI Safety Validation (The Guardrails)
 - **Goal:** Use Gemini to validate the feasibility and safety of the user's goal.
 - **Functional Requirements:**
