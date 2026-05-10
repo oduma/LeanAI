@@ -20,6 +20,7 @@ public static class DependencyInjection
             options.UseSqlite($"Data Source={dbPath}"));
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IDailyIdealWeightRepository, DailyIdealWeightRepository>();
 
         // Gemini AI — key is populated later by App.cs via SetGeminiApiKey()
         var keyHolder = new GeminiKeyHolder();

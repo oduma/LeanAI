@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using LeanAI.Application.WeightManagement.Commands.GenerateIdealPath;
 using LeanAI.Application.WeightManagement.Commands.SaveUserProfile;
 using LeanAI.Application.WeightManagement.DTOs;
 using LeanAI.Application.WeightManagement.Enums;
@@ -186,6 +187,7 @@ public partial class WizardViewModel : ObservableObject
         else
         {
             await SaveCurrentStateAsync();
+            FireAndForgetIdealPathGeneration();
             // Notify page to pop the modal (existing first-run path)
             WeakReferenceMessenger.Default.Send(new WizardCompletedMessage());
             // Notify SettingsViewModel that wizard completed successfully (re-run path)
@@ -200,6 +202,27 @@ public partial class WizardViewModel : ObservableObject
         3 => IsStep3Valid() && ValidationStatus == GoalValidationStatus.Safe,
         _ => false
     };
+
+    // ── Ideal path generation ─────────────────────────────────────────────
+
+    private void FireAndForgetIdealPathGeneration()
+    {
+        var startingWeightKg = ParseWeightToKg(StartingWeightText);
+        var targetWeightKg   = ParseWeightToKg(TargetWeightText);
+        if (startingWeightKg is null || targetWeightKg is null || !TargetPeriod.HasValue) return;
+
+        var cmd = new GenerateIdealPathCommand(
+            StartDate:        DateOnly.FromDateTime(DateTime.Today),
+            StartingWeightKg: startingWeightKg.Value,
+            TargetWeightKg:   targetWeightKg.Value,
+            TargetPeriod:     TargetPeriod.Value);
+
+        _ = Task.Run(async () =>
+        {
+            try { await _mediator.Send(cmd); }
+            catch { /* Non-fatal — ideal path can be regenerated if missing */ }
+        });
+    }
 
     // ── Re-run mode ───────────────────────────────────────────────────────────
 
