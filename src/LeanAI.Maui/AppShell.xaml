@@ -3,12 +3,28 @@
     x:Class="LeanAI.Maui.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:LeanAI.Maui"
-    Title="LeanAI.Maui">
+    xmlns:log="clr-namespace:LeanAI.Maui.Views.Log"
+    xmlns:trends="clr-namespace:LeanAI.Maui.Views.Trends"
+    xmlns:settings="clr-namespace:LeanAI.Maui.Views.Settings"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#222222">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <ShellContent
+            Title="Log"
+            Icon="log_tab.png"
+            ContentTemplate="{DataTemplate log:LogPage}"
+            Route="Log" />
+        <ShellContent
+            Title="Trends"
+            Icon="trends_tab.png"
+            ContentTemplate="{DataTemplate trends:TrendsPage}"
+            Route="Trends" />
+        <ShellContent
+            Title="Settings"
+            Icon="settings_tab.png"
+            ContentTemplate="{DataTemplate settings:SettingsPage}"
+            Route="Settings" />
+    </TabBar>
 
 </Shell>

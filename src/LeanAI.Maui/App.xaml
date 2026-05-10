@@ -1,7 +1,7 @@
 ﻿<?xml version = "1.0" encoding = "UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:LeanAI.Maui"
+             xmlns:conv="clr-namespace:LeanAI.Maui.Converters"
              x:Class="LeanAI.Maui.App">
     <Application.Resources>
         <ResourceDictionary>
@@ -9,6 +9,13 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <conv:BoolToColorConverter   x:Key="BoolToColorConverter" />
+            <conv:BoolToImageConverter   x:Key="BoolToImageConverter" />
+            <conv:BoolToStringConverter  x:Key="BoolToStringConverter" />
+            <conv:InverseBoolConverter   x:Key="InverseBoolConverter" />
+            <conv:GenderToColorConverter x:Key="GenderToColorConverter" />
+            <conv:PeriodToColorConverter x:Key="PeriodToColorConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

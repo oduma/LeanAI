@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="140" height="180" viewBox="0 0 140 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="2" width="136" height="176" rx="12" stroke="#D28B5C" stroke-width="4" style="filter: drop-shadow(0px 0px 8px #D28B5C);"/>
+  <path d="M40 70H80V100C80 111.046 71.0457 120 60 120C48.9543 120 40 111.046 40 100V70Z" stroke="#D28B5C" stroke-width="3"/>
+  <circle cx="60" cy="85" r="8" stroke="#D28B5C" stroke-width="2"/>
+  <line x1="60" y1="85" x2="68" y2="77" stroke="#D28B5C" stroke-width="2"/>
+  <rect x="90" y="70" width="15" height="50" rx="2" stroke="#D28B5C" stroke-width="3"/>
+  <line x1="90" y1="80" x2="98" y2="80" stroke="#D28B5C" stroke-width="2"/>
+  <line x1="90" y1="95" x2="98" y2="95" stroke="#D28B5C" stroke-width="2"/>
+  <line x1="90" y1="110" x2="98" y2="110" stroke="#D28B5C" stroke-width="2"/>
+  <text x="70" y="145" text-anchor="middle" fill="#D28B5C" font-family="sans-serif" font-weight="bold" font-size="14">Imperial (lb/in)</text>
+  <text x="70" y="162" text-anchor="middle" fill="#9A9EAB" font-family="sans-serif" font-size="10">Pounds, Inches</text>
+</svg>

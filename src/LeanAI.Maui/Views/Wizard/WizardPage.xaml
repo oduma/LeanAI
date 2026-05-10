@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    x:Class="LeanAI.Maui.Views.Wizard.WizardPage"
+    x:DataType="vm:WizardViewModel"
+    BackgroundColor="{StaticResource ColorBase}"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="24,48,24,32">
+
+        <!-- Step indicator -->
+        <HorizontalStackLayout
+            Grid.Row="0"
+            HorizontalOptions="Center"
+            Spacing="10"
+            Margin="0,0,0,32">
+            <Ellipse WidthRequest="10" HeightRequest="10"
+                     Fill="{Binding IsStep1, Converter={StaticResource BoolToColorConverter}, ConverterParameter='ColorCopper|ColorNickel'}" />
+            <Ellipse WidthRequest="10" HeightRequest="10"
+                     Fill="{Binding IsStep2, Converter={StaticResource BoolToColorConverter}, ConverterParameter='ColorCopper|ColorNickel'}" />
+            <Ellipse WidthRequest="10" HeightRequest="10"
+                     Fill="{Binding IsStep3, Converter={StaticResource BoolToColorConverter}, ConverterParameter='ColorCopper|ColorNickel'}" />
+        </HorizontalStackLayout>
+
+        <!-- Step content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="20">
+
+                <!-- ── STEP 1: Unit preference ─────────────────────────────── -->
+                <VerticalStackLayout IsVisible="{Binding IsStep1}" Spacing="16">
+                    <Label
+                        Text="Choose your units"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource ColorText}"
+                        HorizontalOptions="Center" />
+
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="20">
+                        <!-- Metric card -->
+                        <ImageButton
+                            Source="{Binding IsMetric, Converter={StaticResource BoolToImageConverter}, ConverterParameter='metric_on.svg|metric_off.svg'}"
+                            WidthRequest="140"
+                            HeightRequest="180"
+                            BackgroundColor="Transparent"
+                            Command="{Binding SelectMetricCommand}" />
+
+                        <!-- Imperial card -->
+                        <ImageButton
+                            Source="{Binding IsImperial, Converter={StaticResource BoolToImageConverter}, ConverterParameter='imperial_on.svg|imperial_off.svg'}"
+                            WidthRequest="140"
+                            HeightRequest="180"
+                            BackgroundColor="Transparent"
+                            Command="{Binding SelectImperialCommand}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- ── STEP 2: User stats ──────────────────────────────────── -->
+                <VerticalStackLayout IsVisible="{Binding IsStep2}" Spacing="20">
+                    <Label
+                        Text="About you"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource ColorText}"
+                        HorizontalOptions="Center" />
+
+                    <!-- Gender -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Gender" TextColor="{StaticResource ColorNickel}" FontSize="13" />
+                        <HorizontalStackLayout Spacing="12">
+                            <Button
+                                Text="Male"
+                                Command="{Binding SelectMaleCommand}"
+                                BackgroundColor="{Binding Gender, Converter={StaticResource GenderToColorConverter}, ConverterParameter='Male'}"
+                                TextColor="{StaticResource ColorText}"
+                                CornerRadius="8"
+                                WidthRequest="120" />
+                            <Button
+                                Text="Female"
+                                Command="{Binding SelectFemaleCommand}"
+                                BackgroundColor="{Binding Gender, Converter={StaticResource GenderToColorConverter}, ConverterParameter='Female'}"
+                                TextColor="{StaticResource ColorText}"
+                                CornerRadius="8"
+                                WidthRequest="120" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Age -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Age" TextColor="{StaticResource ColorNickel}" FontSize="13" />
+                        <Entry
+                            x:Name="AgeEntry"
+                            Text="{Binding AgeText}"
+                            Keyboard="Numeric"
+                            Placeholder="e.g. 30"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="#333333" />
+                    </VerticalStackLayout>
+
+                    <!-- Height — Metric -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsMetric}">
+                        <Label Text="Height (cm)" TextColor="{StaticResource ColorNickel}" FontSize="13" />
+                        <Entry
+                            x:Name="HeightCmEntry"
+                            Text="{Binding HeightCmText}"
+                            Keyboard="Numeric"
+                            Placeholder="e.g. 175"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="#333333" />
+                    </VerticalStackLayout>
+
+                    <!-- Height — Imperial -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsImperial}">
+                        <Label Text="Height" TextColor="{StaticResource ColorNickel}" FontSize="13" />
+                        <HorizontalStackLayout Spacing="12">
+                            <Entry
+                                x:Name="HeightFeetEntry"
+                                Text="{Binding HeightFeetText}"
+                                Keyboard="Numeric"
+                                Placeholder="ft"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="#333333"
+                                WidthRequest="100" />
+                            <Entry
+                                x:Name="HeightInchesEntry"
+                                Text="{Binding HeightInchesText}"
+                                Keyboard="Numeric"
+                                Placeholder="in"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="#333333"
+                                WidthRequest="100" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Starting weight -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label
+                            Text="{Binding WeightUnitLabel, StringFormat='Starting weight ({0})'}"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                        <Entry
+                            x:Name="StartingWeightEntry"
+                            Text="{Binding StartingWeightText}"
+                            Keyboard="Numeric"
+                            Placeholder="e.g. 85"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="#333333" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- ── STEP 3: Goal ────────────────────────────────────────── -->
+                <VerticalStackLayout IsVisible="{Binding IsStep3}" Spacing="20">
+                    <Label
+                        Text="Set your goal"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource ColorText}"
+                        HorizontalOptions="Center" />
+
+                    <!-- Target weight -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label
+                            Text="{Binding WeightUnitLabel, StringFormat='Target weight ({0})'}"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                        <Entry
+                            x:Name="TargetWeightEntry"
+                            Text="{Binding TargetWeightText}"
+                            Keyboard="Numeric"
+                            Placeholder="e.g. 75"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="#333333" />
+                    </VerticalStackLayout>
+
+                    <!-- Target period -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Goal period" TextColor="{StaticResource ColorNickel}" FontSize="13" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Button
+                                Text="3 Months"
+                                Command="{Binding SelectThreeMonthsCommand}"
+                                BackgroundColor="{Binding TargetPeriod, Converter={StaticResource PeriodToColorConverter}, ConverterParameter='ThreeMonths'}"
+                                TextColor="{StaticResource ColorText}"
+                                CornerRadius="8"
+                                FontSize="12" />
+                            <Button
+                                Text="6 Months"
+                                Command="{Binding SelectSixMonthsCommand}"
+                                BackgroundColor="{Binding TargetPeriod, Converter={StaticResource PeriodToColorConverter}, ConverterParameter='SixMonths'}"
+                                TextColor="{StaticResource ColorText}"
+                                CornerRadius="8"
+                                FontSize="12" />
+                            <Button
+                                Text="1 Year"
+                                Command="{Binding SelectOneYearCommand}"
+                                BackgroundColor="{Binding TargetPeriod, Converter={StaticResource PeriodToColorConverter}, ConverterParameter='OneYear'}"
+                                TextColor="{StaticResource ColorText}"
+                                CornerRadius="8"
+                                FontSize="12" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Back / Next buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,16,0,0">
+            <Button
+                Grid.Column="0"
+                Text="Back"
+                Command="{Binding BackCommand}"
+                BackgroundColor="#333333"
+                TextColor="{StaticResource ColorText}"
+                CornerRadius="12"
+                IsVisible="{Binding IsStep1, Converter={StaticResource InverseBoolConverter}}" />
+            <Button
+                Grid.Column="1"
+                Text="{Binding IsStep3, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Done|Next'}"
+                Command="{Binding NextCommand}"
+                BackgroundColor="{StaticResource ColorCopper}"
+                TextColor="{StaticResource ColorText}"
+                CornerRadius="12" />
+        </Grid>
+
+    </Grid>
+</ContentPage>
