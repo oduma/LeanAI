@@ -1,3 +1,4 @@
+using LeanAI.Application.WeightManagement.Queries.GetLogContext;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
 using LeanAI.Domain.WeightManagement.Entities;
 using LeanAI.Domain.WeightManagement.Interfaces;
@@ -31,6 +32,7 @@ public partial class App : Microsoft.Maui.Controls.Application
         {
             await ProvisionAiSettingsAsync();
             await ShowWizardIfNeededAsync();
+            await NavigateToLogIfNoEntryTodayAsync();
         };
         return window;
     }
@@ -61,5 +63,13 @@ public partial class App : Microsoft.Maui.Controls.Application
             var wizardPage = _services.GetRequiredService<WizardPage>();
             await Windows[0].Page!.Navigation.PushModalAsync(wizardPage);
         }
+    }
+
+    private async Task NavigateToLogIfNoEntryTodayAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var ctx   = await _mediator.Send(new GetLogContextQuery(today));
+        if (ctx.TodayWeightKg is null)
+            await Shell.Current.GoToAsync("//Log");
     }
 }

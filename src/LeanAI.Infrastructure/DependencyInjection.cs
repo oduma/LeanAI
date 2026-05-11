@@ -22,6 +22,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IDailyIdealWeightRepository, DailyIdealWeightRepository>();
+        services.AddScoped<IDailyActualWeightRepository, DailyActualWeightRepository>();
         services.AddScoped<IAppSettingsRepository, AppSettingsRepository>();
 
         // Gemini AI — key and model name are populated by App.cs via SetGeminiApiKey/SetGeminiModelName()

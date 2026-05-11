@@ -45,6 +45,7 @@ public static class MauiProgram
         // ViewModels
         builder.Services.AddTransient<WizardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
+        builder.Services.AddTransient<LogViewModel>();
 
         // Platform services
         builder.Services.AddSingleton<IApiKeyStorage, SecureStorageApiKeyStorage>();

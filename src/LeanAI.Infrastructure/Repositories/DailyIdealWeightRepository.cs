@@ -19,4 +19,7 @@ public class DailyIdealWeightRepository(LeanAIDbContext context) : IDailyIdealWe
         await context.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
+
+    public Task<DailyIdealWeight?> GetByDateAsync(DateOnly date, CancellationToken ct = default) =>
+        context.DailyIdealWeights.FirstOrDefaultAsync(e => e.Date == date, ct);
 }
