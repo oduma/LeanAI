@@ -105,6 +105,55 @@
 - **Technical Specs:** Implementation of the "Autosave" pattern (see UI_UX_SPEC.md).
 - **DoD:** User can record weight and see immediate color-coded comparisons against their ideal plan.
 
+# Phase 4.5: External Data Integration (Google Sheets Import) ✅ COMPLETE
+
+**Goal**
+Enable users to migrate historical weight data from Google Sheets to LeanAI to provide immediate longitudinal insights. After import the ideal weight line is automatically recalculated to span the full date range found in the sheet — including future-dated rows — giving the user immediate longitudinal context.
+
+**Functional Requirements (as implemented)**
+- **Authentication:** OAuth 2.0 Authorization Code flow with PKCE via `WebAuthenticator`. Refresh token stored in `SecureStorage`; subsequent imports use silent refresh (no re-authentication required).
+- **Permission Scope:** `spreadsheets.readonly` + `drive.readonly`.
+- **Token Management:** "Disconnect Google Account" row in Settings clears the stored token.
+- **Source Selection:** 5-step modal wizard; Step 2 lists the user's Google Drive spreadsheets by name.
+- **Data Mapping:** User-driven column mapping via dropdowns (Date, Weight, Notes). Auto-selects sensible defaults by matching header names case-insensitively. Toggle for Metric / Imperial sheet units.
+- **Import row cap:** Maximum 400 rows read per import (`"2:401"` range).
+- **Date parsing:** Handles 16+ explicit formats plus a `DateTime.TryParse` fallback covering locale-specific strings returned by the Google Sheets API.
+- **Two-phase import:**
+    - **Phase 1 — Date range / ideal path:** All rows with a valid date (including future rows with no weight yet) define the goal period. `GoalStartDate` = first date with a recorded weight; `GoalEndDate` = last date in the sheet regardless of whether a weight is recorded. Ideal weight line is regenerated across this full span.
+    - **Phase 2 — Actual weights:** Only rows where the weight cell is non-null and > 0 are written to `DailyActualWeight`. Rows with a valid date but no weight are counted but not written.
+- **Overwrite rule:** An existing `DailyActualWeight` entry is overwritten only when the imported weight is > 0. Zero or null → existing app entry is preserved.
+- **Pre-import warning:** Explicit full-page confirmation (Step 4) lists every consequence before any data is written.
+- **Import summary (Step 5):**
+    - Dates found in spreadsheet
+    - Days on ideal weight line (recalculated span)
+    - Dates with a recorded weight (found in sheet)
+    - Weight entries saved to database
+    - Parse failures (shown only when > 0)
+
+**Technical Specifications**
+- **OAuth client type:** Android application type in Google Cloud Console (Web clients do not support custom URI schemes).
+- **PKCE:** SHA256 code challenge; no client secret required.
+- **`IGoogleTokenStorage`:** Application-layer interface abstracting `SecureStorage`; implemented by `SecureGoogleTokenStorage` in the MAUI layer (mirrors the `IApiKeyStorage` pattern).
+- **`IGoogleSheetsService`:** Defined in Application layer; implemented by `GoogleSheetsService` in Infrastructure using `Google.Apis.Sheets.v4` + `Google.Apis.Drive.v3`.
+- **`GenerateIdealPathCommand`:** Extended with optional `ExactTotalDays` parameter; when set, overrides `TargetPeriod.TotalDays()`. Fully backward-compatible.
+- **`UpdateGoalFromImportCommand`:** Sets `GoalStartDate`, `GoalEndDate`, and `StartingWeightKg` on `UserProfile`.
+- **EF Core migration `Add_GoalDates_To_UserProfile`:** Adds nullable `GoalStartDate` and `GoalEndDate` TEXT columns to `UserProfiles`.
+- **New converters:** `IntEqualsConverter`, `IntGreaterThanZeroConverter`, `StringNotEmptyConverter`.
+
+**Definition of Done**
+- ✅ User authenticates with Google; refresh token persisted; subsequent imports skip sign-in.
+- ✅ Spreadsheet list fetched and displayed; user selects one.
+- ✅ Column mapping dropdowns populated from sheet header row with sensible auto-defaults.
+- ✅ Pre-import confirmation page shown before any data is written.
+- ✅ All dated rows (including future rows) define the goal period and ideal weight span.
+- ✅ Only rows with weight > 0 are written to `DailyActualWeight`.
+- ✅ Existing entries with valid weights are overwritten; entries with zero/null imported weight are preserved.
+- ✅ `UserProfile.GoalStartDate`, `GoalEndDate`, `StartingWeightKg` updated; `TargetWeightKg` unchanged.
+- ✅ Ideal weight line regenerated across the full sheet date range.
+- ✅ 4-metric import summary displayed on completion.
+- ✅ "Disconnect Google" clears stored token.
+- ✅ All 79 tests pass; `dotnet build` → 0 errors, 0 warnings.
+
 ## Phase 5: The Evolution View (The Dashboard)
 - **Goal:** High-level visualization of achievements and trends.
 - **Functional Requirements:**

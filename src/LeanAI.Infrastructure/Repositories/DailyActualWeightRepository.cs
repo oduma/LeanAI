@@ -16,6 +16,12 @@ public class DailyActualWeightRepository(LeanAIDbContext context) : IDailyActual
             .OrderBy(e => e.Date)
             .ToListAsync(ct);
 
+    public async Task InsertBatchAsync(IEnumerable<DailyActualWeight> entries, CancellationToken ct = default)
+    {
+        await context.DailyActualWeights.AddRangeAsync(entries, ct);
+        await context.SaveChangesAsync(ct);
+    }
+
     public async Task UpsertAsync(DailyActualWeight entry, CancellationToken ct = default)
     {
         var tracked = context.ChangeTracker.Entries<DailyActualWeight>()

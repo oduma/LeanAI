@@ -6,7 +6,9 @@ using LeanAI.Application.WeightManagement.Commands.SaveAppSettings;
 using LeanAI.Application.WeightManagement.Commands.SaveUserProfile;
 using LeanAI.Application.WeightManagement.Queries.GetAppSettings;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
+using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Maui.Messages;
+using LeanAI.Maui.Views.Import;
 using LeanAI.Maui.Views.Wizard;
 using MediatR;
 
@@ -14,8 +16,9 @@ namespace LeanAI.Maui.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly IMediator _mediator;
-    private readonly IServiceProvider _services;
+    private readonly IMediator          _mediator;
+    private readonly IServiceProvider   _services;
+    private readonly IGoogleTokenStorage _googleTokenStorage;
 
     private string _loadedModelName = string.Empty;
     private string _loadedApiKey    = string.Empty;
@@ -26,11 +29,13 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private string _geminiModelName = string.Empty;
     [ObservableProperty] private string _geminiApiKey    = string.Empty;
+    [ObservableProperty] private bool   _hasGoogleToken;
 
-    public SettingsViewModel(IMediator mediator, IServiceProvider services)
+    public SettingsViewModel(IMediator mediator, IServiceProvider services, IGoogleTokenStorage googleTokenStorage)
     {
-        _mediator = mediator;
-        _services = services;
+        _mediator            = mediator;
+        _services            = services;
+        _googleTokenStorage  = googleTokenStorage;
     }
 
     partial void OnGeminiModelNameChanged(string value) =>
@@ -48,6 +53,8 @@ public partial class SettingsViewModel : ObservableObject
         GeminiModelName  = dto.GeminiModelName;
         GeminiApiKey     = dto.GeminiApiKey;
         HasChanges       = false;
+
+        HasGoogleToken   = await _googleTokenStorage.GetRefreshTokenAsync() is not null;
     }
 
     [RelayCommand(CanExecute = nameof(HasChanges))]
@@ -57,6 +64,21 @@ public partial class SettingsViewModel : ObservableObject
         _loadedModelName = GeminiModelName;
         _loadedApiKey    = GeminiApiKey;
         HasChanges       = false;
+    }
+
+    [RelayCommand]
+    private async Task OpenImportWizardAsync()
+    {
+        var importPage = _services.GetRequiredService<ImportWizardPage>();
+        await Shell.Current.Navigation.PushModalAsync(importPage);
+        HasGoogleToken = await _googleTokenStorage.GetRefreshTokenAsync() is not null;
+    }
+
+    [RelayCommand]
+    private async Task DisconnectGoogleAsync()
+    {
+        await _googleTokenStorage.ClearRefreshTokenAsync();
+        HasGoogleToken = false;
     }
 
     [RelayCommand]

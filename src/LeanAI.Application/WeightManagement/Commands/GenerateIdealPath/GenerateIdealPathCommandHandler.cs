@@ -10,7 +10,7 @@ public class GenerateIdealPathCommandHandler(IDailyIdealWeightRepository reposit
 {
     public async Task<Unit> Handle(GenerateIdealPathCommand request, CancellationToken cancellationToken)
     {
-        var totalDays = request.TargetPeriod.TotalDays();
+        var totalDays = request.ExactTotalDays ?? request.TargetPeriod.TotalDays();
         var dailyLoss = (request.StartingWeightKg - request.TargetWeightKg) / totalDays;
 
         var entries = Enumerable.Range(0, totalDays)

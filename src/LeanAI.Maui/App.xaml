@@ -10,12 +10,15 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <conv:BoolToColorConverter   x:Key="BoolToColorConverter" />
-            <conv:BoolToImageConverter   x:Key="BoolToImageConverter" />
-            <conv:BoolToStringConverter  x:Key="BoolToStringConverter" />
-            <conv:InverseBoolConverter   x:Key="InverseBoolConverter" />
-            <conv:GenderToColorConverter x:Key="GenderToColorConverter" />
-            <conv:PeriodToColorConverter x:Key="PeriodToColorConverter" />
+            <conv:BoolToColorConverter      x:Key="BoolToColorConverter" />
+            <conv:BoolToImageConverter      x:Key="BoolToImageConverter" />
+            <conv:BoolToStringConverter     x:Key="BoolToStringConverter" />
+            <conv:InverseBoolConverter      x:Key="InverseBoolConverter" />
+            <conv:GenderToColorConverter    x:Key="GenderToColorConverter" />
+            <conv:PeriodToColorConverter    x:Key="PeriodToColorConverter" />
+            <conv:StringNotEmptyConverter   x:Key="StringNotEmptyConverter" />
+            <conv:IntEqualsConverter          x:Key="IntEqualsConverter" />
+            <conv:IntGreaterThanZeroConverter x:Key="IntGreaterThanZeroConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

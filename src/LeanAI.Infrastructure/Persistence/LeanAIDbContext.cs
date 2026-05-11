@@ -25,6 +25,12 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.Property(e => e.StartingWeightKg);
             entity.Property(e => e.TargetWeightKg);
             entity.Property(e => e.TargetPeriod);
+            entity.Property(e => e.GoalStartDate)
+                  .HasConversion(d => d.HasValue ? d.Value.ToString("yyyy-MM-dd") : null,
+                                 s => s != null ? DateOnly.Parse(s) : (DateOnly?)null);
+            entity.Property(e => e.GoalEndDate)
+                  .HasConversion(d => d.HasValue ? d.Value.ToString("yyyy-MM-dd") : null,
+                                 s => s != null ? DateOnly.Parse(s) : (DateOnly?)null);
         });
 
         modelBuilder.Entity<DailyIdealWeight>(entity =>

@@ -1,9 +1,11 @@
 using CommunityToolkit.Maui;
+using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure;
 using LeanAI.Infrastructure.Persistence;
 using LeanAI.Maui.Services;
 using LeanAI.Maui.ViewModels;
+using LeanAI.Maui.Views.Import;
 using LeanAI.Maui.Views.Log;
 using LeanAI.Maui.Views.Settings;
 using LeanAI.Maui.Views.Trends;
@@ -41,14 +43,17 @@ public static class MauiProgram
         builder.Services.AddTransient<LogPage>();
         builder.Services.AddTransient<TrendsPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<ImportWizardPage>();
 
         // ViewModels
         builder.Services.AddTransient<WizardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<LogViewModel>();
+        builder.Services.AddTransient<ImportWizardViewModel>();
 
         // Platform services
         builder.Services.AddSingleton<IApiKeyStorage, SecureStorageApiKeyStorage>();
+        builder.Services.AddSingleton<IGoogleTokenStorage, SecureGoogleTokenStorage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

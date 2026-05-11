@@ -7,5 +7,6 @@ public record GenerateIdealPathCommand(
     DateOnly     StartDate,
     double       StartingWeightKg,
     double       TargetWeightKg,
-    TargetPeriod TargetPeriod
+    TargetPeriod TargetPeriod,
+    int?         ExactTotalDays = null
 ) : IRequest<Unit>;

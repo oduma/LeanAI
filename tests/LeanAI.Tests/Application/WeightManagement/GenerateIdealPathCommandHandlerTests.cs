@@ -100,6 +100,22 @@ public class GenerateIdealPathCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ExactTotalDays_OverridesTargetPeriod()
+    {
+        IEnumerable<DailyIdealWeight>? captured = null;
+        _repoMock
+            .Setup(r => r.InsertBatchAsync(It.IsAny<IEnumerable<DailyIdealWeight>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<DailyIdealWeight>, CancellationToken>((entries, _) => captured = entries)
+            .Returns(Task.CompletedTask);
+
+        // 240 days: does not match any TargetPeriod enum value
+        var cmd = new GenerateIdealPathCommand(StartDate, 90.0, 75.0, TargetPeriod.ThreeMonths, ExactTotalDays: 240);
+        await _handler.Handle(cmd, CancellationToken.None);
+
+        captured.Should().HaveCount(240);
+    }
+
+    [Fact]
     public async Task Handle_DeleteAll_CalledBeforeInsert()
     {
         var callOrder = new List<string>();

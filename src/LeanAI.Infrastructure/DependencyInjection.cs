@@ -38,6 +38,9 @@ public static class DependencyInjection
 
         services.AddTransient<IAIGoalValidationService, GeminiGoalValidationService>();
 
+        services.AddHttpClient<GoogleOAuthService>();
+        services.AddSingleton<IGoogleSheetsService, GoogleSheetsService>();
+
         return services;
     }
 

@@ -145,6 +145,88 @@
             </VerticalStackLayout>
         </Border>
 
+        <!-- DATA IMPORT section header -->
+        <Label
+            Text="DATA IMPORT"
+            TextColor="{StaticResource ColorNickel}"
+            FontSize="11"
+            CharacterSpacing="2"
+            Margin="4,32,0,10" />
+
+        <!-- Import from Google Sheets row -->
+        <Border
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Padding="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <Grid
+                Padding="16,14"
+                ColumnDefinitions="*,Auto">
+                <VerticalStackLayout
+                    Grid.Column="0"
+                    Spacing="3">
+                    <Label
+                        Text="Import from Google Sheets"
+                        TextColor="{StaticResource ColorText}"
+                        FontSize="16"
+                        FontAttributes="Bold" />
+                    <Label
+                        Text="Sync your historical weight data"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="13" />
+                </VerticalStackLayout>
+                <Label
+                    Grid.Column="1"
+                    Text="›"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="22"
+                    VerticalOptions="Center" />
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding OpenImportWizardCommand}" />
+                </Grid.GestureRecognizers>
+            </Grid>
+        </Border>
+
+        <!-- Disconnect Google row (visible only when token stored) -->
+        <Border
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Padding="0"
+            Margin="0,8,0,0"
+            IsVisible="{Binding HasGoogleToken}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <Grid
+                Padding="16,14"
+                ColumnDefinitions="*,Auto">
+                <VerticalStackLayout
+                    Grid.Column="0"
+                    Spacing="3">
+                    <Label
+                        Text="Disconnect Google Account"
+                        TextColor="{StaticResource ColorText}"
+                        FontSize="16"
+                        FontAttributes="Bold" />
+                    <Label
+                        Text="Requires re-authentication on next import"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="13" />
+                </VerticalStackLayout>
+                <Label
+                    Grid.Column="1"
+                    Text="›"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="22"
+                    VerticalOptions="Center" />
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding DisconnectGoogleCommand}" />
+                </Grid.GestureRecognizers>
+            </Grid>
+        </Border>
+
     </VerticalStackLayout>
 
 </ContentPage>

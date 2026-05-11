@@ -13,6 +13,9 @@ public class UserProfile : BaseEntity
     public double? TargetWeightKg { get; set; }
     public TargetPeriod? TargetPeriod { get; set; }
 
+    public DateOnly? GoalStartDate { get; set; }
+    public DateOnly? GoalEndDate   { get; set; }
+
     public bool IsComplete =>
         Gender.HasValue &&
         Age.HasValue &&
