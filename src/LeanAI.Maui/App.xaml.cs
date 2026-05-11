@@ -1,4 +1,6 @@
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
+using LeanAI.Domain.WeightManagement.Entities;
+using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure;
 using LeanAI.Maui.Views.Wizard;
 using MediatR;
@@ -27,14 +29,15 @@ public partial class App : Microsoft.Maui.Controls.Application
         var window = new Window(new AppShell());
         window.Created += async (_, _) =>
         {
-            await ProvisionGeminiKeyAsync();
+            await ProvisionAiSettingsAsync();
             await ShowWizardIfNeededAsync();
         };
         return window;
     }
 
-    private async Task ProvisionGeminiKeyAsync()
+    private async Task ProvisionAiSettingsAsync()
     {
+        // Provision API key
         var key = await SecureStorage.GetAsync(GeminiKeyStorageKey);
         if (string.IsNullOrEmpty(key))
         {
@@ -42,6 +45,12 @@ public partial class App : Microsoft.Maui.Controls.Application
             await SecureStorage.SetAsync(GeminiKeyStorageKey, key);
         }
         _services.SetGeminiApiKey(key);
+
+        // Load model name from DB (uses default if no AppSettings row exists yet)
+        using var scope = _services.CreateScope();
+        var settingsRepo = scope.ServiceProvider.GetRequiredService<IAppSettingsRepository>();
+        var settings = await settingsRepo.GetAsync();
+        _services.SetGeminiModelName(settings?.GeminiModelName ?? AppSettings.DefaultModelName);
     }
 
     private async Task ShowWizardIfNeededAsync()

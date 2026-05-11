@@ -5,9 +5,10 @@ namespace LeanAI.Infrastructure.Persistence;
 
 public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbContext(options)
 {
-    public DbSet<UserProfile>      UserProfiles      => Set<UserProfile>();
-    public DbSet<DailyIdealWeight> DailyIdealWeights => Set<DailyIdealWeight>();
+    public DbSet<UserProfile>       UserProfiles       => Set<UserProfile>();
+    public DbSet<DailyIdealWeight>  DailyIdealWeights  => Set<DailyIdealWeight>();
     public DbSet<DailyActualWeight> DailyActualWeights => Set<DailyActualWeight>();
+    public DbSet<AppSettings>       AppSettings        => Set<AppSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,13 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                                  s => DateOnly.Parse(s));
             entity.Property(e => e.WeightKg).IsRequired();
             entity.Property(e => e.Notes);
+        });
+
+        modelBuilder.Entity<AppSettings>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.GeminiModelName).IsRequired();
         });
     }
 }

@@ -57,6 +57,42 @@
     - Background task for batch DB insertion using SQLite transactions.
 - **DoD:** Upon wizard completion, the DB contains a full "Ideal" weight map for the selected timeframe without blocking the UI.
 
+## Phase 3.5: AI Configuration Settings (The Control Panel — AI)
+- **Goal:** Allow users to view and update the AI model name and Gemini API key directly from the Settings screen, without requiring a reinstall or developer intervention.
+- **Functional Requirements:**
+    - **AI Model Field:** A text entry labeled "AI Model" in the Settings screen.
+        - Default value: `gemini-2.5-flash`.
+        - Loaded from the database on screen open.
+        - Changes are persisted to the database when the user saves.
+    - **Gemini API Key Field:** A masked (password-style) text entry labeled "Gemini API Key".
+        - Loaded from SecureStorage on screen open.
+        - The key is never written to the database — SecureStorage only.
+        - Changes are persisted to SecureStorage when the user saves.
+    - **Save AI Settings Action:** A tappable "Save AI Settings" button persists both fields simultaneously.
+    - **Hot Reload:** After saving, all subsequent AI calls within the same session use the updated model name and API key — no restart required.
+- **Technical Specs:**
+    - **`AppSettings` Entity** (Domain layer): New entity extending `BaseEntity` with a single persisted property `string GeminiModelName` (default `"gemini-2.5-flash"`). The API key is never a field on this entity.
+    - **`IAppSettingsRepository`** (Domain): Interface with `GetAsync` and `SaveAsync` methods, mirroring `IUserProfileRepository`.
+    - **`IApiKeyStorage`** (Domain): New interface abstracting platform-level secure key storage; decouples the Application layer from MAUI `SecureStorage`.
+    - **`AppSettingsRepository`** (Infrastructure): EF Core implementation of `IAppSettingsRepository` (single-row pattern identical to `UserProfileRepository`).
+    - **`SecureStorageApiKeyStorage`** (Infrastructure): MAUI `SecureStorage` implementation of `IApiKeyStorage`. On `SetAsync`, also updates `GeminiKeyHolder` to hot-reload the active key.
+    - **`GeminiKeyHolder`** (Infrastructure): Extend to also carry `GeminiModelName`. Update the lazy `IChatClient` factory to read model name from the holder at creation time.
+    - **`AppSettingsDto`** (Application): Record with `string GeminiModelName` and `string GeminiApiKey`.
+    - **`GetAppSettingsQuery` / Handler** (Application): Returns `AppSettingsDto` — model name from `IAppSettingsRepository`; key from `IApiKeyStorage`.
+    - **`SaveAppSettingsCommand` / Handler** (Application): Accepts `GeminiModelName` and `GeminiApiKey`. Saves model name via `IAppSettingsRepository`; saves key via `IApiKeyStorage`.
+    - **`SettingsViewModel`** (Presentation): Loads settings via `GetAppSettingsQuery` on navigation (`OnAppearing`). Exposes `[ObservableProperty] string GeminiModelName` and `[ObservableProperty] string GeminiApiKey`. Exposes `[RelayCommand] Task SaveAiSettingsAsync()` dispatching `SaveAppSettingsCommand`.
+    - **`SettingsPage.xaml`**: Add an "AI Configuration" section below the existing "Re-Run the Setup" row. Section contains two `Entry` controls (model name plain text, API key with `IsPassword="True"`) and a "Save AI Settings" tappable row or button.
+    - **App Startup**: Extend `App.xaml.cs` provisioning logic to also load `GeminiModelName` from `IAppSettingsRepository` (default if no row exists) and push it into `GeminiKeyHolder` before the first AI call.
+    - **EF Core Migration**: Add `AppSettings` table (`Id` Guid PK, `GeminiModelName` string NOT NULL). No existing tables are altered.
+    - Register `IAppSettingsRepository`, `IApiKeyStorage`, and `AppSettings`-related services in `DependencyInjection.cs`.
+- **DoD:**
+    - Settings screen displays the current AI model name and masked API key on open.
+    - "Save AI Settings" persists model name to the `AppSettings` DB table and key to SecureStorage.
+    - AI calls following a save use the new model/key without restarting the app.
+    - EF Core migration applies cleanly — no data loss to `UserProfiles`, `DailyIdealWeights`, or `DailyActualWeights`.
+    - `GetAppSettingsQueryHandler` and `SaveAppSettingsCommandHandler` tested at 100% branch coverage.
+    - `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all tests green.
+
 ## Phase 4: Daily Tracking & Feedback (The Habit)
 - **Goal:** Provide a seamless entry point for daily weight recording.
 - **Functional Requirements:**

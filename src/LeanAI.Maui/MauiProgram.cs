@@ -1,12 +1,14 @@
 using CommunityToolkit.Maui;
+using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 using LeanAI.Infrastructure.Persistence;
+using LeanAI.Maui.Services;
 using LeanAI.Maui.ViewModels;
 using LeanAI.Maui.Views.Log;
 using LeanAI.Maui.Views.Settings;
 using LeanAI.Maui.Views.Trends;
 using LeanAI.Maui.Views.Wizard;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace LeanAI.Maui;
@@ -43,6 +45,9 @@ public static class MauiProgram
         // ViewModels
         builder.Services.AddTransient<WizardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
+
+        // Platform services
+        builder.Services.AddSingleton<IApiKeyStorage, SecureStorageApiKeyStorage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

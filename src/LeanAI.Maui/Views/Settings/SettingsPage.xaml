@@ -10,7 +10,7 @@
 
     <VerticalStackLayout Padding="24,32" Spacing="0">
 
-        <!-- Section header -->
+        <!-- PROFILE section header -->
         <Label
             Text="PROFILE"
             TextColor="{StaticResource ColorNickel}"
@@ -52,6 +52,97 @@
                     <TapGestureRecognizer Command="{Binding ReRunSetupCommand}" />
                 </Grid.GestureRecognizers>
             </Grid>
+        </Border>
+
+        <!-- AI CONFIGURATION section header -->
+        <Label
+            Text="AI CONFIGURATION"
+            TextColor="{StaticResource ColorNickel}"
+            FontSize="11"
+            CharacterSpacing="2"
+            Margin="4,32,0,10" />
+
+        <!-- AI Configuration card -->
+        <Border
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Padding="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <VerticalStackLayout Padding="16,14" Spacing="16">
+
+                <!-- AI Model field -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="AI Model"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="13" />
+                    <Border
+                        BackgroundColor="#1A1A1A"
+                        StrokeThickness="0"
+                        Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Entry
+                            Text="{Binding GeminiModelName}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="Transparent"
+                            FontSize="15"
+                            Placeholder="e.g. gemini-2.5-flash"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            Margin="12,10" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Gemini API Key field -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Gemini API Key"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="13" />
+                    <Border
+                        BackgroundColor="#1A1A1A"
+                        StrokeThickness="0"
+                        Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Entry
+                            Text="{Binding GeminiApiKey}"
+                            IsPassword="True"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="Transparent"
+                            FontSize="15"
+                            Placeholder="Enter your API key"
+                            PlaceholderColor="{StaticResource ColorNickel}"
+                            Margin="12,10" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Save button — Copper when changed, Nickel when nothing to save -->
+                <Border
+                    BackgroundColor="{Binding HasChanges, Converter={StaticResource BoolToColorConverter}, ConverterParameter='ColorCopper|ColorNickel'}"
+                    StrokeThickness="0"
+                    Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Label
+                        Text="Save Settings"
+                        TextColor="{StaticResource ColorBase}"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Center"
+                        Padding="0,12">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SaveAiSettingsCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </Border>
+
+            </VerticalStackLayout>
         </Border>
 
     </VerticalStackLayout>

@@ -1,4 +1,5 @@
 using LeanAI.Application.WeightManagement.Services;
+using LeanAI.Domain.WeightManagement.Entities;
 using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure.Persistence;
 using LeanAI.Infrastructure.Repositories;
@@ -21,17 +22,17 @@ public static class DependencyInjection
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IDailyIdealWeightRepository, DailyIdealWeightRepository>();
+        services.AddScoped<IAppSettingsRepository, AppSettingsRepository>();
 
-        // Gemini AI — key is populated later by App.cs via SetGeminiApiKey()
+        // Gemini AI — key and model name are populated by App.cs via SetGeminiApiKey/SetGeminiModelName()
         var keyHolder = new GeminiKeyHolder();
         services.AddSingleton(keyHolder);
 
-        // IChatClient factory runs lazily on first resolution (first Step 3 validation),
-        // by which time App.cs has already written the key into GeminiKeyHolder.
-        services.AddSingleton<IChatClient>(sp =>
+        // Transient so each resolution picks up the current key and model name from the holder.
+        services.AddTransient<IChatClient>(sp =>
         {
             var holder = sp.GetRequiredService<GeminiKeyHolder>();
-            return new GeminiClient(holder.ApiKey).AsIChatClient("gemini-2.5-flash");
+            return new GeminiClient(holder.ApiKey).AsIChatClient(holder.ModelName);
         });
 
         services.AddTransient<IAIGoalValidationService, GeminiGoalValidationService>();
@@ -41,17 +42,23 @@ public static class DependencyInjection
 
     /// <summary>
     /// Called by App.cs after reading the API key from SecureStorage.
-    /// Populates the GeminiKeyHolder singleton so the IChatClient factory can use it.
     /// </summary>
     public static void SetGeminiApiKey(this IServiceProvider services, string apiKey)
         => services.GetRequiredService<GeminiKeyHolder>().ApiKey = apiKey;
+
+    /// <summary>
+    /// Called by App.cs after loading the model name from AppSettings.
+    /// </summary>
+    public static void SetGeminiModelName(this IServiceProvider services, string modelName)
+        => services.GetRequiredService<GeminiKeyHolder>().ModelName = modelName;
 }
 
 /// <summary>
-/// Carries the Gemini API key from the MAUI presentation layer to the Infrastructure IChatClient factory.
-/// Populated by App.cs before any AI validation is requested.
+/// Carries the Gemini API key and model name from the MAUI presentation layer
+/// to the Infrastructure IChatClient factory. Populated by App.cs before any AI call.
 /// </summary>
-internal sealed class GeminiKeyHolder
+public sealed class GeminiKeyHolder
 {
-    public string ApiKey { get; set; } = string.Empty;
+    public string ApiKey   { get; set; } = string.Empty;
+    public string ModelName { get; set; } = AppSettings.DefaultModelName;
 }

@@ -3,6 +3,7 @@ using System;
 using LeanAI.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LeanAI.Infrastructure.Migrations
 {
     [DbContext(typeof(LeanAIDbContext))]
-    partial class LeanAIDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260511185341_Add_AppSettings")]
+    partial class Add_AppSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
