@@ -9,14 +9,15 @@ namespace LeanAI.Tests.Application.WeightManagement;
 
 public class GenerateIdealPathCommandHandlerTests
 {
-    private readonly Mock<IDailyIdealWeightRepository> _repoMock = new();
-    private readonly GenerateIdealPathCommandHandler _handler;
+    private readonly Mock<IDailyIdealWeightRepository> _repoMock    = new();
+    private readonly Mock<IUserProfileRepository>      _profileMock = new();
+    private readonly GenerateIdealPathCommandHandler   _handler;
 
     private static readonly DateOnly StartDate = new(2026, 5, 10);
 
     public GenerateIdealPathCommandHandlerTests()
     {
-        _handler = new GenerateIdealPathCommandHandler(_repoMock.Object);
+        _handler = new GenerateIdealPathCommandHandler(_repoMock.Object, _profileMock.Object);
     }
 
     [Fact]
@@ -133,5 +134,41 @@ public class GenerateIdealPathCommandHandlerTests
         await _handler.Handle(cmd, CancellationToken.None);
 
         callOrder.Should().Equal("delete", "insert");
+    }
+
+    [Fact]
+    public async Task Handle_SetsGoalStartDate_OnUserProfile()
+    {
+        var profile = new UserProfile();
+        _profileMock.Setup(r => r.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(profile);
+
+        var cmd = new GenerateIdealPathCommand(StartDate, 90.0, 75.0, TargetPeriod.ThreeMonths);
+        await _handler.Handle(cmd, CancellationToken.None);
+
+        profile.GoalStartDate.Should().Be(StartDate);
+    }
+
+    [Fact]
+    public async Task Handle_SetsGoalEndDate_OnUserProfile()
+    {
+        var profile = new UserProfile();
+        _profileMock.Setup(r => r.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(profile);
+
+        var cmd = new GenerateIdealPathCommand(StartDate, 90.0, 75.0, TargetPeriod.ThreeMonths);
+        await _handler.Handle(cmd, CancellationToken.None);
+
+        // 90 days → StartDate + 89
+        profile.GoalEndDate.Should().Be(StartDate.AddDays(89));
+    }
+
+    [Fact]
+    public async Task Handle_WhenProfileIsNull_DoesNotThrow()
+    {
+        _profileMock.Setup(r => r.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync((UserProfile?)null);
+
+        var cmd = new GenerateIdealPathCommand(StartDate, 90.0, 75.0, TargetPeriod.ThreeMonths);
+        var act = async () => await _handler.Handle(cmd, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
     }
 }

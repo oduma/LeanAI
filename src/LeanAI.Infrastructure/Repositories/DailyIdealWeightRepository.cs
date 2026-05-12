@@ -22,4 +22,10 @@ public class DailyIdealWeightRepository(LeanAIDbContext context) : IDailyIdealWe
 
     public Task<DailyIdealWeight?> GetByDateAsync(DateOnly date, CancellationToken ct = default) =>
         context.DailyIdealWeights.FirstOrDefaultAsync(e => e.Date == date, ct);
+
+    public async Task<IReadOnlyList<DailyIdealWeight>> GetRangeAsync(DateOnly from, DateOnly to, CancellationToken ct = default) =>
+        await context.DailyIdealWeights
+            .Where(e => e.Date >= from && e.Date <= to)
+            .OrderBy(e => e.Date)
+            .ToListAsync(ct);
 }

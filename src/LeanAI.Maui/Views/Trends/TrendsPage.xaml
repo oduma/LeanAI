@@ -2,14 +2,101 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    xmlns:trends="clr-namespace:LeanAI.Maui.Views.Trends"
+    xmlns:microcharts="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui"
     x:Class="LeanAI.Maui.Views.Trends.TrendsPage"
-    Title="Trends"
+    x:DataType="vm:TrendsViewModel"
     BackgroundColor="{StaticResource ColorBase}">
 
-    <Label
-        Text="Trends"
-        HorizontalOptions="Center"
-        VerticalOptions="Center"
-        TextColor="{StaticResource ColorText}" />
+    <!--
+        Row 0 : page title + loading spinner  (auto height)
+        Row 1 : evolution chart               (* — fills all remaining vertical space)
+        Row 2 : weekly bar chart              (auto height — sized by content)
+    -->
+    <Grid Padding="16,24,16,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0 : page title + loading indicator -->
+        <VerticalStackLayout Grid.Row="0" Spacing="6">
+            <Label
+                Text="Trends"
+                TextColor="{StaticResource ColorText}"
+                FontSize="22"
+                FontAttributes="Bold" />
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource ColorCopper}"
+                HorizontalOptions="Start" />
+        </VerticalStackLayout>
+
+        <!-- Row 1 : evolution chart (fills remaining height) -->
+        <Border
+            Grid.Row="1"
+            IsVisible="{Binding HasData}"
+            Stroke="{StaticResource ColorCopper}"
+            StrokeThickness="1"
+            BackgroundColor="{StaticResource ColorBase}"
+            Padding="8,6,8,4">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="4" />
+            </Border.StrokeShape>
+            <!-- Inner grid: title row (auto) + chart row (fills the rest) -->
+            <Grid RowSpacing="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Label
+                    Grid.Row="0"
+                    Text="Actual weight vs. Ideal Weight"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="13" />
+                <GraphicsView
+                    Grid.Row="1"
+                    x:Name="EvolutionView"
+                    Drawable="{Binding EvolutionDrawable}" />
+            </Grid>
+        </Border>
+
+        <!-- Row 1 : empty state (shown when HasData = false) -->
+        <Label
+            Grid.Row="1"
+            IsVisible="{Binding HasData, Converter={StaticResource InverseBoolConverter}}"
+            Text="No data yet — complete setup and start logging your weight to see trends."
+            TextColor="{StaticResource ColorNickel}"
+            FontSize="14"
+            HorizontalTextAlignment="Center"
+            HorizontalOptions="Center"
+            VerticalOptions="Center" />
+
+        <!-- Row 2 : weekly loss/gain bar chart -->
+        <Border
+            Grid.Row="2"
+            IsVisible="{Binding HasData}"
+            Stroke="{StaticResource ColorCopper}"
+            StrokeThickness="1"
+            BackgroundColor="{StaticResource ColorBase}"
+            Padding="8,6,8,4">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="4" />
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="4">
+                <Label
+                    Text="Weekly average weight loss"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="13" />
+                <microcharts:ChartView
+                    Chart="{Binding WeeklyDeltaChart}"
+                    HeightRequest="160" />
+            </VerticalStackLayout>
+        </Border>
+
+    </Grid>
 
 </ContentPage>

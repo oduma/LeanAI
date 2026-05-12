@@ -5,7 +5,9 @@ using MediatR;
 
 namespace LeanAI.Application.WeightManagement.Commands.GenerateIdealPath;
 
-public class GenerateIdealPathCommandHandler(IDailyIdealWeightRepository repository)
+public class GenerateIdealPathCommandHandler(
+    IDailyIdealWeightRepository idealRepo,
+    IUserProfileRepository      profileRepo)
     : IRequestHandler<GenerateIdealPathCommand, Unit>
 {
     public async Task<Unit> Handle(GenerateIdealPathCommand request, CancellationToken cancellationToken)
@@ -21,8 +23,16 @@ public class GenerateIdealPathCommandHandler(IDailyIdealWeightRepository reposit
             })
             .ToList();
 
-        await repository.DeleteAllAsync(cancellationToken);
-        await repository.InsertBatchAsync(entries, cancellationToken);
+        await idealRepo.DeleteAllAsync(cancellationToken);
+        await idealRepo.InsertBatchAsync(entries, cancellationToken);
+
+        var profile = await profileRepo.GetAsync(cancellationToken);
+        if (profile is not null)
+        {
+            profile.GoalStartDate = request.StartDate;
+            profile.GoalEndDate   = request.StartDate.AddDays(totalDays - 1);
+            await profileRepo.SaveAsync(profile, cancellationToken);
+        }
 
         return Unit.Value;
     }

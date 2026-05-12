@@ -154,12 +154,44 @@ Enable users to migrate historical weight data from Google Sheets to LeanAI to p
 - ✅ "Disconnect Google" clears stored token.
 - ✅ All 79 tests pass; `dotnet build` → 0 errors, 0 warnings.
 
-## Phase 5: The Evolution View (The Dashboard)
-- **Goal:** High-level visualization of achievements and trends.
-- **Functional Requirements:**
-    - **Tabbed Navigation:** Toggle between Calendar and Graphical views.
-    - **Calendar Achievement Matrix:** Color-code days (Green, Yellow, Orange, Red) based on Daily/Weekly vs. Ideal thresholds.
-    - **Graphical Evolution:** Line chart overlaying `Actual` vs. `Ideal` for the full period.
-    - **Weekly Loss View:** Bar chart showing weekly weight delta trends.
-- **Technical Specs:** Integration of `Microcharts.Maui`.
-- **DoD:** User can navigate their history and visually identify successful vs. struggling periods.
+## Phase 5: The Trends Screen ✅ COMPLETE
+
+- **Goal:** High-level visualization of weight evolution and weekly trends.
+- **Scope decision:** Calendar Achievement Matrix deferred to a future phase. Phase 5 delivers the Trends tab only (charts-only screen).
+
+### As-Implemented Functional Requirements
+
+**Trends tab** (existing Shell tab, replaced placeholder):
+
+- **Weight Evolution chart** — fills the upper portion of the screen, title "Actual weight vs. Ideal Weight":
+    - **Nickel line** (`#9A9EAB`): Daily ideal weight — continuous line across the full goal period.
+    - **Copper line** (`#D28B5C`): Actual recorded weights — line segments connecting consecutive calendar dates only; gaps in recording are visible as empty space.
+    - **White dots**: Ideal weekly averages — plotted at each Monday + GoalEndDate.
+    - **Amber dots** (`#E8A838`): Actual weekly averages — plotted at each Monday + GoalEndDate where ≥1 actual weight was recorded in that Mon–Sun window.
+    - X-axis: date range from `GoalStartDate` to `GoalEndDate`; month-boundary labels.
+    - Y-axis: auto-scaled to the min/max of ideal + actual data with 5% padding; 5 labeled grid lines.
+
+- **Weekly Loss/Gain chart** — below the evolution chart, title "Weekly average weight loss":
+    - One bar per week anchor where at least one previous week also has data (i.e., `N` weekly averages → `N−1` bars).
+    - Bar value = `avg(prevWeek) − avg(thisWeek)`. Positive = lost weight = copper bar. Negative = gained weight = nickel bar.
+    - X-axis labels: "d MMM" format at the Monday anchor of each week.
+
+- **Weekly average definition:** Mean of all actual weight entries recorded Mon–Sun of that calendar week. Anchor dates = every Monday in range + GoalEndDate (partial last week always included).
+
+- **Empty state:** When no ideal path data exists, both charts are hidden and a message is shown.
+
+- **Screen layout:** Both charts fill the full screen (no scroll). Evolution chart takes all remaining space via `Height="*"`; bar chart is fixed height below it.
+
+### Technical Decisions
+
+| Decision | Detail |
+|----------|--------|
+| Evolution chart rendering | Custom MAUI `GraphicsView` + `WeightEvolutionDrawable` (`IDrawable`) — Microcharts does not support 4 synchronized series on a shared coordinate system |
+| Bar chart rendering | `Microcharts.Maui` 1.0.1 `BarChart` — per-entry colour, satisfies Microcharts integration requirement |
+| `GoalStartDate` invariant fix | `GenerateIdealPathCommandHandler` now writes `GoalStartDate` / `GoalEndDate` to `UserProfile` after ideal path generation — manual-setup users previously had these null |
+| New repository method | `IDailyIdealWeightRepository.GetRangeAsync(DateOnly from, DateOnly to)` added |
+| Weekly average | Mean of all Mon–Sun entries; no minimum recording count required |
+| Weekly delta | `avg(prevWeek) − avg(thisWeek)`; weeks with no recordings are excluded from both average and delta series |
+| Partial last week | `GoalEndDate` is always appended as a final weekly anchor, even when mid-week |
+
+- **DoD:** ✅ User can see the full weight evolution against the ideal line and identify weekly loss/gain trends. 95/95 tests passing.

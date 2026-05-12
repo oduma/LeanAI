@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure;
@@ -22,6 +23,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseSkiaSharp()
             .UseMauiCommunityToolkit()
             .ConfigureFonts(fonts =>
             {
@@ -49,6 +51,7 @@ public static class MauiProgram
         builder.Services.AddTransient<WizardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<LogViewModel>();
+        builder.Services.AddTransient<TrendsViewModel>();
         builder.Services.AddTransient<ImportWizardViewModel>();
 
         // Platform services
