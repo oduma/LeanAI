@@ -173,4 +173,52 @@ public class GetLogContextQueryHandlerTests
 
         result.UnitSystem.Should().Be(UnitSystem.Metric);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsWeekStartDate_AsMonday()
+    {
+        // TestDate is Wed 2026-05-13 → Monday of that week is 2026-05-11
+        var result = await _handler.Handle(new GetLogContextQuery(TestDate), CancellationToken.None);
+
+        result.WeekStartDate.Should().Be(WeekStart);
+        result.WeekStartDate.DayOfWeek.Should().Be(DayOfWeek.Monday);
+    }
+
+    [Fact]
+    public async Task Handle_WhenWeekEntriesExist_ReturnsCurrentWeekAverage()
+    {
+        var entries = new List<DailyActualWeight>
+        {
+            new() { Date = WeekStart,            WeightKg = 84.0 },
+            new() { Date = WeekStart.AddDays(1), WeightKg = 82.0 },
+            new() { Date = TestDate,             WeightKg = 80.0 }
+        };
+        _actualRepoMock
+            .Setup(r => r.GetRangeAsync(WeekStart, WeekEnd, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entries);
+
+        var result = await _handler.Handle(new GetLogContextQuery(TestDate), CancellationToken.None);
+
+        result.CurrentWeekAverageWeightKg.Should().BeApproximately((84.0 + 82.0 + 80.0) / 3, 0.001);
+    }
+
+    [Fact]
+    public async Task Handle_WhenLastWeekEntriesExist_ReturnsLastWeekAverage()
+    {
+        // Last week: Mon 2026-05-04 – Sun 2026-05-10
+        var lastWeekStart = new DateOnly(2026, 5, 4);
+        var lastWeekEnd   = new DateOnly(2026, 5, 10);
+        var lastWeekEntries = new List<DailyActualWeight>
+        {
+            new() { Date = lastWeekStart,            WeightKg = 86.0 },
+            new() { Date = lastWeekStart.AddDays(2), WeightKg = 85.0 }
+        };
+        _actualRepoMock
+            .Setup(r => r.GetRangeAsync(lastWeekStart, lastWeekEnd, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lastWeekEntries);
+
+        var result = await _handler.Handle(new GetLogContextQuery(TestDate), CancellationToken.None);
+
+        result.LastWeekAverageWeightKg.Should().BeApproximately((86.0 + 85.0) / 2, 0.001);
+    }
 }

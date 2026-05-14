@@ -17,6 +17,8 @@ public partial class LogViewModel : ObservableObject
     private double?    _weekFirstWeightKg;
     private int        _weekDaysLogged;
     private double?    _idealWeeklyLossKg;
+    private double?    _currentWeekAverageKg;
+    private double?    _lastWeekAverageKg;
     private UnitSystem _unitSystem           = UnitSystem.Metric;
     private bool       _todayWasAlreadySaved;
     private bool       _isLoading;
@@ -31,10 +33,13 @@ public partial class LogViewModel : ObservableObject
     [ObservableProperty] private bool     _isDeltaGain;
     [ObservableProperty] private bool     _isAboveIdeal;
     [ObservableProperty] private string   _aboveIdealDeltaText = string.Empty;
-    [ObservableProperty] private string   _currentWeeklyLossText = "—";
-    [ObservableProperty] private string   _idealWeeklyLossText   = "—";
-    [ObservableProperty] private string   _unitLabel   = "kg";
-    [ObservableProperty] private string   _entryDateLabel = string.Empty;
+    [ObservableProperty] private string   _currentWeeklyLossText    = "—";
+    [ObservableProperty] private string   _idealWeeklyLossText      = "—";
+    [ObservableProperty] private string   _unitLabel                = "kg";
+    [ObservableProperty] private string   _entryDateLabel           = string.Empty;
+    [ObservableProperty] private string   _weekStartDateLabel       = string.Empty;
+    [ObservableProperty] private string   _currentWeeklyAverageText = "—";
+    [ObservableProperty] private bool     _isWeeklyAverageTrending;
 
     public LogViewModel(IMediator mediator)
     {
@@ -81,10 +86,13 @@ public partial class LogViewModel : ObservableObject
         _weekFirstWeightKg    = ctx.WeekFirstWeightKg;
         _weekDaysLogged       = ctx.WeekDaysLogged;
         _idealWeeklyLossKg    = ctx.IdealWeeklyLossKg;
+        _currentWeekAverageKg = ctx.CurrentWeekAverageWeightKg;
+        _lastWeekAverageKg    = ctx.LastWeekAverageWeightKg;
         _unitSystem           = ctx.UnitSystem;
         _todayWasAlreadySaved = ctx.TodayWeightKg.HasValue;
 
-        UnitLabel = _unitSystem == UnitSystem.Metric ? "kg" : "lb";
+        UnitLabel         = _unitSystem == UnitSystem.Metric ? "kg" : "lb";
+        WeekStartDateLabel = ctx.WeekStartDate.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 
         _isLoading = true;
         WeightDisplayText = ctx.TodayWeightKg.HasValue
@@ -102,12 +110,17 @@ public partial class LogViewModel : ObservableObject
 
         if (currentKg is null)
         {
-            YesterdayDeltaText    = "—";
-            IsDeltaGain           = false;
-            IsAboveIdeal          = false;
-            AboveIdealDeltaText   = string.Empty;
-            CurrentWeeklyLossText = "—";
-            IdealWeeklyLossText   = FormatWeightOrDash(_idealWeeklyLossKg);
+            YesterdayDeltaText       = "—";
+            IsDeltaGain              = false;
+            IsAboveIdeal             = false;
+            AboveIdealDeltaText      = string.Empty;
+            CurrentWeeklyLossText    = "—";
+            IdealWeeklyLossText      = FormatWeightOrDash(_idealWeeklyLossKg);
+            CurrentWeeklyAverageText = _currentWeekAverageKg.HasValue
+                ? $"{FormatValue(ToDisplay(_currentWeekAverageKg.Value))} {UnitLabel}"
+                : "—";
+            IsWeeklyAverageTrending  = _lastWeekAverageKg.HasValue && _currentWeekAverageKg.HasValue
+                && _currentWeekAverageKg.Value < _lastWeekAverageKg.Value;
             return;
         }
 
@@ -168,6 +181,19 @@ public partial class LogViewModel : ObservableObject
         else
         {
             CurrentWeeklyLossText = "—";
+        }
+
+        // Current average weekly weight
+        if (_currentWeekAverageKg.HasValue)
+        {
+            CurrentWeeklyAverageText = $"{FormatValue(ToDisplay(_currentWeekAverageKg.Value))} {UnitLabel}";
+            IsWeeklyAverageTrending  = _lastWeekAverageKg.HasValue
+                && _currentWeekAverageKg.Value < _lastWeekAverageKg.Value;
+        }
+        else
+        {
+            CurrentWeeklyAverageText = "—";
+            IsWeeklyAverageTrending  = false;
         }
     }
 

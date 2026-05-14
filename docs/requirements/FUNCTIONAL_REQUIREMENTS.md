@@ -262,3 +262,143 @@ Provide a high-density, interactive historical overview of user progress through
 - ✅ Calendar cells fill the available screen height dynamically — no hardcoded row heights.
 - ✅ Weekly averages are calculated and persisted after Google Sheets import.
 - ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all 123 tests green.
+
+---
+
+## Phase 7: UI/UX Improvements ✅ COMPLETE
+
+### Goal
+Polish all four main screens for readability and usability: larger fonts and better layout on the Log screen; an interactive zoom on the Trends chart; bigger tap targets on the Calendar navigation; auto-saving Settings with a cleaner section structure; and an updated Android launcher icon.
+
+---
+
+### Log Screen
+
+**Header**
+- "Daily Entry" span: `FontSize` 16 → 24 (Bold, unchanged).
+- Date span (`EntryDateLabel`): `FontSize` 16 → 20; colored **Copper** to improve visibility.
+
+**Card section labels**
+- "Current Weight" and "Comments (Optional)" labels: `FontSize` 13 → 15.
+
+**Spacing**
+- Extra top margin (24 pt) before the "REAL-TIME ANALYSIS" section label to create clear visual separation between the data-entry cards and the display-only analysis area.
+
+**Analysis section header**
+- "REAL-TIME ANALYSIS" label: `FontSize` 11 → 13.
+
+**Analysis cards**
+- Sub-title labels ("Yesterday Delta", etc.): `FontSize` 11 → 13.
+- Value labels (e.g., Yesterday Delta value): `FontSize` 22 → 26.
+- Sub-row labels inside Weekly Loss card ("Current", "Ideal"): `FontSize` 11 → 13.
+- Sub-row value labels: `FontSize` 15 → 18.
+
+**Weekly Loss card — rename**
+- Title changes from "Predicted Weekly Loss" to:
+  ```
+  Weekly Loss for week starting on:
+  [Monday date of the current week, formatted "d MMM yyyy"]
+  ```
+- Both "Current" (actual projected rate) and "Ideal" (target rate) sub-rows are retained.
+- The week-start date is derived from the current entry date (already known in the handler); it is added to `LogContextDto` as `DateOnly WeekStartDate`.
+
+**New "Current Average Weekly Weight" card**
+- Full-width card below the 2-column analysis grid.
+- Title: "Current Average Weekly Weight" (Nickel, FontSize 13).
+- Value: formatted weight + unit (e.g., "87.3 kg"), FontSize 26, Bold.
+- **Color rule:** Copper if the current calendar week's running average weight is strictly less than the previous calendar week's average (positive trend = losing weight); Nickel otherwise.
+- Requires two new fields in `LogContextDto`: `double? CurrentWeekAverageWeightKg` and `double? LastWeekAverageWeightKg`.
+- `GetLogContextQueryHandler` adds one extra `GetRangeAsync` call for the prior Mon–Sun window to compute `LastWeekAverageWeightKg`.
+
+**Remove debounce hint**
+- The label "Data is debounced and saved automatically" is removed from the screen entirely.
+
+---
+
+### Trends Screen — Evolution Chart Zoom
+
+**Behavior**
+- Tapping the evolution chart once activates **3-month zoom mode**:
+  - Window: `(today − 76 days)` to `(today + 14 days)` — approximately 2 months and 2 weeks before today, 2 weeks after.
+  - Y-axis auto-rescales to data within the window only for improved readability.
+  - Chart title changes to: "Actual weight vs. Ideal Weight  (3-month view)".
+- Tapping again **restores full mode**:
+  - Window: `GoalStartDate` to `GoalEndDate`.
+  - Title reverts to: "Actual weight vs. Ideal Weight".
+- The **Weekly average loss bar chart** (bottom row) is completely unaffected by the zoom toggle.
+
+**Technical approach**
+- `WeightEvolutionDrawable` gains `IsZoomed`, `ZoomFrom`, `ZoomTo` properties.
+- `DateToX` uses the effective date range (zoom or full) internally.
+- `TrendsViewModel` exposes `EvolutionChartTitle` (`[ObservableProperty]`) and a `ToggleZoom()` method.
+- `TrendsPage` wires a `TapGestureRecognizer` on the `GraphicsView`; the code-behind handler calls `ViewModel.ToggleZoom()` then `EvolutionView.Invalidate()`.
+
+---
+
+### Calendar Screen — Navigation Tap Targets
+
+- The Previous Month ("‹") and Next Month ("›") controls are replaced with large transparent `Grid` cells (`Padding="20,16"`) containing the glyph as a `Label`.
+- Column widths increase from 44 → 72 px to accommodate the larger touch zones.
+- A `TapGestureRecognizer` bound to `PreviousMonthCommand` / `NextMonthCommand` replaces the `ImageButton.Command` binding.
+
+---
+
+### Settings Screen — Reorganization & Auto-save
+
+**New section order**
+1. **GENERIC SETTINGS** — First Day of Week (Picker)
+2. **AI CONFIGURATION** — AI Model (text), Gemini API Key (password text)
+3. **DATA IMPORT** — Import from Google Sheets + Disconnect Google (conditional)
+4. **PROFILE** — Re-Run the Setup
+
+**Auto-save**
+- **Picker (`First Day of Week`)**: saves immediately on `SelectedIndexChanged`.
+- **Text entries (`AI Model`, `API Key`)**: debounced 500 ms (same pattern as `LogViewModel`).
+- **Save button**: removed from the screen entirely.
+
+**`SettingsViewModel` changes**
+- Remove: `HasChanges`, `SaveAiSettingsCommand`, `[NotifyCanExecuteChangedFor]`, `RefreshHasChanges()`.
+- Add: `CancellationTokenSource? _saveCts`, `TriggerSave()`, `SaveWithDebounceAsync()`, `SaveImmediateAsync()`.
+- `OnCalendarFirstDayIndexChanged` → calls `SaveImmediateAsync()`.
+- `OnGeminiModelNameChanged` / `OnGeminiApiKeyChanged` → calls `TriggerSave()`.
+
+---
+
+### Android Launcher Icon
+
+- All `mipmap-*` density folders (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) from `z-com-ai/icontoolkit/android/res/` are copied into `src/LeanAI.Maui/Platforms/Android/Resources/`, replacing any previously generated launcher icons.
+- The adaptive icon descriptor `mipmap-anydpi-v26/ic_launcher.xml` is included.
+
+---
+
+### Technical Specifications Summary
+
+| Area | Change |
+|------|--------|
+| `LogContextDto` | Add `DateOnly WeekStartDate`, `double? CurrentWeekAverageWeightKg`, `double? LastWeekAverageWeightKg` |
+| `GetLogContextQueryHandler` | Compute new DTO fields; add one extra `GetRangeAsync` call for prior-week entries |
+| `LogViewModel` | Add `WeekStartDateLabel`, `CurrentWeeklyAverageText`, `IsWeeklyAverageTrending` observable properties |
+| `WeightEvolutionDrawable` | Add `IsZoomed`, `ZoomFrom`, `ZoomTo`; update `DateToX` and `Draw` to respect zoom window |
+| `TrendsViewModel` | Add `EvolutionChartTitle` property; add `ToggleZoom()` method |
+| `TrendsPage` | Wire tap gesture on `GraphicsView`; invalidate on toggle |
+| `CalendarPage.xaml` | Replace `ImageButton` arrow controls with large-tap `Grid`+`Label` controls |
+| `SettingsViewModel` | Remove explicit save; add debounce auto-save pattern |
+| `SettingsPage.xaml` | Reorder sections; remove Save button |
+| Android Resources | Copy mipmap folders from toolkit |
+
+---
+
+### Definition of Done
+
+- ✅ Log screen header "Daily Entry" and date are visibly larger; date is Copper-colored.
+- ✅ All Log screen analysis fonts enlarged as specified.
+- ✅ Weekly Loss card retitled with week-start date; both Current and Ideal sub-rows retained.
+- ✅ "Current Average Weekly Weight" card present; Copper when this week's average < last week's; Nickel otherwise.
+- ✅ "Data is debounced and saved automatically" text removed.
+- ✅ Trends: single tap on evolution chart toggles 3-month zoom; second tap restores full view; bar chart unaffected; title reflects state.
+- ✅ Calendar: Previous / Next month arrows have a 72-px-wide, full-padding tap zone.
+- ✅ Settings sections appear in order: GENERIC SETTINGS → AI CONFIGURATION → DATA IMPORT → PROFILE.
+- ✅ Settings: all fields auto-save (Picker immediately; text entries debounced 500 ms); Save button absent.
+- ✅ Android launcher icon updated with assets from toolkit (`play_store_512.png` replaces source icon; MAUI generates mipmap densities at build time).
+- ✅ `dotnet test` → 127 tests, 0 failures.
+- ✅ `dotnet build` → 0 errors, 0 warnings (pre-existing SkiaSharp XA0141 warning unrelated to Phase 7).

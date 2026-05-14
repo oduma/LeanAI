@@ -28,6 +28,17 @@ public sealed class GetLogContextQueryHandler(
         var weekOrdered       = weekEntries.OrderBy(e => e.Date).ToList();
         var weekFirstWeightKg = weekOrdered.Count > 0 ? weekOrdered[0].WeightKg : (double?)null;
 
+        var lastWeekStart  = weekStart.AddDays(-7);
+        var lastWeekEnd    = weekStart.AddDays(-1);
+        var lastWeekEntries = await actualRepository.GetRangeAsync(lastWeekStart, lastWeekEnd, cancellationToken);
+
+        double? currentWeekAvg = weekOrdered.Count > 0
+            ? weekOrdered.Average(e => e.WeightKg)
+            : null;
+        double? lastWeekAvg = lastWeekEntries.Any()
+            ? lastWeekEntries.Average(e => e.WeightKg)
+            : null;
+
         double? idealWeeklyLoss = null;
         if (profile?.StartingWeightKg.HasValue == true
             && profile.TargetWeightKg.HasValue
@@ -38,14 +49,17 @@ public sealed class GetLogContextQueryHandler(
         }
 
         return new LogContextDto(
-            TodayWeightKg:      today?.WeightKg,
-            TodayNotes:         today?.Notes,
-            YesterdayWeightKg:  yesterday?.WeightKg,
-            TodayIdealWeightKg: ideal?.WeightKg,
-            WeekFirstWeightKg:  weekFirstWeightKg,
-            WeekDaysLogged:     weekOrdered.Count,
-            IdealWeeklyLossKg:  idealWeeklyLoss,
-            UnitSystem:         profile?.UnitSystem ?? UnitSystem.Metric
+            TodayWeightKg:              today?.WeightKg,
+            TodayNotes:                 today?.Notes,
+            YesterdayWeightKg:          yesterday?.WeightKg,
+            TodayIdealWeightKg:         ideal?.WeightKg,
+            WeekFirstWeightKg:          weekFirstWeightKg,
+            WeekDaysLogged:             weekOrdered.Count,
+            IdealWeeklyLossKg:          idealWeeklyLoss,
+            UnitSystem:                 profile?.UnitSystem ?? UnitSystem.Metric,
+            WeekStartDate:              weekStart,
+            CurrentWeekAverageWeightKg: currentWeekAvg,
+            LastWeekAverageWeightKg:    lastWeekAvg
         );
     }
 }

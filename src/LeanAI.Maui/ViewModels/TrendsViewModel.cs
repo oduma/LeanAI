@@ -18,7 +18,30 @@ public partial class TrendsViewModel(IMediator mediator) : ObservableObject
     [ObservableProperty]
     private Chart? _weeklyDeltaChart;
 
+    [ObservableProperty]
+    private string _evolutionChartTitle = "Actual weight vs. Ideal Weight";
+
     public WeightEvolutionDrawable EvolutionDrawable { get; } = new();
+
+    private bool _isZoomed;
+
+    public void ToggleZoom()
+    {
+        _isZoomed = !_isZoomed;
+        if (_isZoomed)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            EvolutionDrawable.ZoomFrom = today.AddDays(-76);
+            EvolutionDrawable.ZoomTo   = today.AddDays(14);
+            EvolutionDrawable.IsZoomed = true;
+            EvolutionChartTitle = "Actual weight vs. Ideal Weight  (3-month view)";
+        }
+        else
+        {
+            EvolutionDrawable.IsZoomed = false;
+            EvolutionChartTitle = "Actual weight vs. Ideal Weight";
+        }
+    }
 
     public async Task LoadAsync(CancellationToken ct = default)
     {

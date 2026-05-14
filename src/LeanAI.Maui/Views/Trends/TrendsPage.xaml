@@ -54,13 +54,17 @@
                 </Grid.RowDefinitions>
                 <Label
                     Grid.Row="0"
-                    Text="Actual weight vs. Ideal Weight"
+                    Text="{Binding EvolutionChartTitle}"
                     TextColor="{StaticResource ColorNickel}"
                     FontSize="13" />
                 <GraphicsView
                     Grid.Row="1"
                     x:Name="EvolutionView"
-                    Drawable="{Binding EvolutionDrawable}" />
+                    Drawable="{Binding EvolutionDrawable}">
+                    <GraphicsView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnEvolutionTapped" />
+                    </GraphicsView.GestureRecognizers>
+                </GraphicsView>
             </Grid>
         </Border>
 

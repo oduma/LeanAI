@@ -8,96 +8,26 @@
     Title="Settings"
     BackgroundColor="{StaticResource ColorBase}">
 
-    <VerticalStackLayout Padding="24,32" Spacing="0">
+    <ScrollView>
+        <VerticalStackLayout Padding="24,32" Spacing="0">
 
-        <!-- PROFILE section header -->
-        <Label
-            Text="PROFILE"
-            TextColor="{StaticResource ColorNickel}"
-            FontSize="11"
-            CharacterSpacing="2"
-            Margin="4,0,0,10" />
+            <!-- GENERIC SETTINGS section header -->
+            <Label
+                Text="GENERIC SETTINGS"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="11"
+                CharacterSpacing="2"
+                Margin="4,0,0,10" />
 
-        <!-- Re-Run action row -->
-        <Border
-            BackgroundColor="#2A2A2A"
-            StrokeThickness="0"
-            Padding="0">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="10" />
-            </Border.StrokeShape>
-            <Grid
-                Padding="16,14"
-                ColumnDefinitions="*,Auto">
-                <VerticalStackLayout
-                    Grid.Column="0"
-                    Spacing="3">
-                    <Label
-                        Text="Re-Run the Setup"
-                        TextColor="{StaticResource ColorText}"
-                        FontSize="16"
-                        FontAttributes="Bold" />
-                    <Label
-                        Text="Your stats and your goals will be deleted!"
-                        TextColor="{StaticResource ColorNickel}"
-                        FontSize="13" />
-                </VerticalStackLayout>
-                <Label
-                    Grid.Column="1"
-                    Text="›"
-                    TextColor="{StaticResource ColorNickel}"
-                    FontSize="22"
-                    VerticalOptions="Center" />
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding ReRunSetupCommand}" />
-                </Grid.GestureRecognizers>
-            </Grid>
-        </Border>
-
-        <!-- AI CONFIGURATION section header -->
-        <Label
-            Text="AI CONFIGURATION"
-            TextColor="{StaticResource ColorNickel}"
-            FontSize="11"
-            CharacterSpacing="2"
-            Margin="4,32,0,10" />
-
-        <!-- AI Configuration card -->
-        <Border
-            BackgroundColor="#2A2A2A"
-            StrokeThickness="0"
-            Padding="0">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="10" />
-            </Border.StrokeShape>
-            <VerticalStackLayout Padding="16,14" Spacing="16">
-
-                <!-- AI Model field -->
-                <VerticalStackLayout Spacing="6">
-                    <Label
-                        Text="AI Model"
-                        TextColor="{StaticResource ColorNickel}"
-                        FontSize="13" />
-                    <Border
-                        BackgroundColor="#1A1A1A"
-                        StrokeThickness="0"
-                        Padding="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8" />
-                        </Border.StrokeShape>
-                        <Entry
-                            Text="{Binding GeminiModelName}"
-                            TextColor="{StaticResource ColorText}"
-                            BackgroundColor="Transparent"
-                            FontSize="15"
-                            Placeholder="e.g. gemini-2.5-flash"
-                            PlaceholderColor="{StaticResource ColorNickel}"
-                            Margin="12,10" />
-                    </Border>
-                </VerticalStackLayout>
-
-                <!-- Calendar First Day field -->
-                <VerticalStackLayout Spacing="6">
+            <!-- Generic Settings card — First Day of Week -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Padding="16,14" Spacing="6">
                     <Label
                         Text="First Day of Week"
                         TextColor="{StaticResource ColorNickel}"
@@ -122,138 +52,205 @@
                         </Picker>
                     </Border>
                 </VerticalStackLayout>
+            </Border>
 
-                <!-- Gemini API Key field -->
-                <VerticalStackLayout Spacing="6">
-                    <Label
-                        Text="Gemini API Key"
-                        TextColor="{StaticResource ColorNickel}"
-                        FontSize="13" />
-                    <Border
-                        BackgroundColor="#1A1A1A"
-                        StrokeThickness="0"
-                        Padding="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8" />
-                        </Border.StrokeShape>
-                        <Entry
-                            Text="{Binding GeminiApiKey}"
-                            IsPassword="True"
+            <!-- AI CONFIGURATION section header -->
+            <Label
+                Text="AI CONFIGURATION"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="11"
+                CharacterSpacing="2"
+                Margin="4,32,0,10" />
+
+            <!-- AI Configuration card -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Padding="16,14" Spacing="16">
+
+                    <!-- AI Model field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label
+                            Text="AI Model"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                        <Border
+                            BackgroundColor="#1A1A1A"
+                            StrokeThickness="0"
+                            Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Entry
+                                Text="{Binding GeminiModelName}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                Placeholder="e.g. gemini-2.5-flash"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                Margin="12,10" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Gemini API Key field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label
+                            Text="Gemini API Key"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                        <Border
+                            BackgroundColor="#1A1A1A"
+                            StrokeThickness="0"
+                            Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Entry
+                                Text="{Binding GeminiApiKey}"
+                                IsPassword="True"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                Placeholder="Enter your API key"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                Margin="12,10" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- DATA IMPORT section header -->
+            <Label
+                Text="DATA IMPORT"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="11"
+                CharacterSpacing="2"
+                Margin="4,32,0,10" />
+
+            <!-- Import from Google Sheets row -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid
+                    Padding="16,14"
+                    ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout
+                        Grid.Column="0"
+                        Spacing="3">
+                        <Label
+                            Text="Import from Google Sheets"
                             TextColor="{StaticResource ColorText}"
-                            BackgroundColor="Transparent"
-                            FontSize="15"
-                            Placeholder="Enter your API key"
-                            PlaceholderColor="{StaticResource ColorNickel}"
-                            Margin="12,10" />
-                    </Border>
-                </VerticalStackLayout>
-
-                <!-- Save button — Copper when changed, Nickel when nothing to save -->
-                <Border
-                    BackgroundColor="{Binding HasChanges, Converter={StaticResource BoolToColorConverter}, ConverterParameter='ColorCopper|ColorNickel'}"
-                    StrokeThickness="0"
-                    Padding="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="8" />
-                    </Border.StrokeShape>
+                            FontSize="16"
+                            FontAttributes="Bold" />
+                        <Label
+                            Text="Sync your historical weight data"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                    </VerticalStackLayout>
                     <Label
-                        Text="Save Settings"
-                        TextColor="{StaticResource ColorBase}"
-                        FontSize="15"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Center"
-                        Padding="0,12">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding SaveAiSettingsCommand}" />
-                        </Label.GestureRecognizers>
-                    </Label>
-                </Border>
-
-            </VerticalStackLayout>
-        </Border>
-
-        <!-- DATA IMPORT section header -->
-        <Label
-            Text="DATA IMPORT"
-            TextColor="{StaticResource ColorNickel}"
-            FontSize="11"
-            CharacterSpacing="2"
-            Margin="4,32,0,10" />
-
-        <!-- Import from Google Sheets row -->
-        <Border
-            BackgroundColor="#2A2A2A"
-            StrokeThickness="0"
-            Padding="0">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="10" />
-            </Border.StrokeShape>
-            <Grid
-                Padding="16,14"
-                ColumnDefinitions="*,Auto">
-                <VerticalStackLayout
-                    Grid.Column="0"
-                    Spacing="3">
-                    <Label
-                        Text="Import from Google Sheets"
-                        TextColor="{StaticResource ColorText}"
-                        FontSize="16"
-                        FontAttributes="Bold" />
-                    <Label
-                        Text="Sync your historical weight data"
+                        Grid.Column="1"
+                        Text="›"
                         TextColor="{StaticResource ColorNickel}"
-                        FontSize="13" />
-                </VerticalStackLayout>
-                <Label
-                    Grid.Column="1"
-                    Text="›"
-                    TextColor="{StaticResource ColorNickel}"
-                    FontSize="22"
-                    VerticalOptions="Center" />
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenImportWizardCommand}" />
-                </Grid.GestureRecognizers>
-            </Grid>
-        </Border>
+                        FontSize="22"
+                        VerticalOptions="Center" />
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenImportWizardCommand}" />
+                    </Grid.GestureRecognizers>
+                </Grid>
+            </Border>
 
-        <!-- Disconnect Google row (visible only when token stored) -->
-        <Border
-            BackgroundColor="#2A2A2A"
-            StrokeThickness="0"
-            Padding="0"
-            Margin="0,8,0,0"
-            IsVisible="{Binding HasGoogleToken}">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="10" />
-            </Border.StrokeShape>
-            <Grid
-                Padding="16,14"
-                ColumnDefinitions="*,Auto">
-                <VerticalStackLayout
-                    Grid.Column="0"
-                    Spacing="3">
+            <!-- Disconnect Google row (visible only when token stored) -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0"
+                Margin="0,8,0,0"
+                IsVisible="{Binding HasGoogleToken}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid
+                    Padding="16,14"
+                    ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout
+                        Grid.Column="0"
+                        Spacing="3">
+                        <Label
+                            Text="Disconnect Google Account"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="16"
+                            FontAttributes="Bold" />
+                        <Label
+                            Text="Requires re-authentication on next import"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                    </VerticalStackLayout>
                     <Label
-                        Text="Disconnect Google Account"
-                        TextColor="{StaticResource ColorText}"
-                        FontSize="16"
-                        FontAttributes="Bold" />
-                    <Label
-                        Text="Requires re-authentication on next import"
+                        Grid.Column="1"
+                        Text="›"
                         TextColor="{StaticResource ColorNickel}"
-                        FontSize="13" />
-                </VerticalStackLayout>
-                <Label
-                    Grid.Column="1"
-                    Text="›"
-                    TextColor="{StaticResource ColorNickel}"
-                    FontSize="22"
-                    VerticalOptions="Center" />
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding DisconnectGoogleCommand}" />
-                </Grid.GestureRecognizers>
-            </Grid>
-        </Border>
+                        FontSize="22"
+                        VerticalOptions="Center" />
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding DisconnectGoogleCommand}" />
+                    </Grid.GestureRecognizers>
+                </Grid>
+            </Border>
 
-    </VerticalStackLayout>
+            <!-- PROFILE section header -->
+            <Label
+                Text="PROFILE"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="11"
+                CharacterSpacing="2"
+                Margin="4,32,0,10" />
+
+            <!-- Re-Run action row -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid
+                    Padding="16,14"
+                    ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout
+                        Grid.Column="0"
+                        Spacing="3">
+                        <Label
+                            Text="Re-Run the Setup"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="16"
+                            FontAttributes="Bold" />
+                        <Label
+                            Text="Your stats and your goals will be deleted!"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                    </VerticalStackLayout>
+                    <Label
+                        Grid.Column="1"
+                        Text="›"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="22"
+                        VerticalOptions="Center" />
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ReRunSetupCommand}" />
+                    </Grid.GestureRecognizers>
+                </Grid>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
 
 </ContentPage>

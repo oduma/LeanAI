@@ -16,65 +16,85 @@ namespace LeanAI.Maui.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly IMediator          _mediator;
-    private readonly IServiceProvider   _services;
+    private readonly IMediator           _mediator;
+    private readonly IServiceProvider    _services;
     private readonly IGoogleTokenStorage _googleTokenStorage;
 
-    private string    _loadedModelName    = string.Empty;
-    private string    _loadedApiKey       = string.Empty;
-    private DayOfWeek _loadedCalendarDay  = DayOfWeek.Monday;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(SaveAiSettingsCommand))]
-    private bool _hasChanges;
+    private bool _isLoading;
+    private CancellationTokenSource? _saveCts;
 
     [ObservableProperty] private string    _geminiModelName    = string.Empty;
     [ObservableProperty] private string    _geminiApiKey       = string.Empty;
     [ObservableProperty] private bool      _hasGoogleToken;
-    [ObservableProperty] private int       _calendarFirstDayIndex; // 0 = Monday, 1 = Sunday (picker index)
+    [ObservableProperty] private int       _calendarFirstDayIndex;
 
     public DayOfWeek CalendarFirstDay =>
         CalendarFirstDayIndex == 0 ? DayOfWeek.Monday : DayOfWeek.Sunday;
 
     public SettingsViewModel(IMediator mediator, IServiceProvider services, IGoogleTokenStorage googleTokenStorage)
     {
-        _mediator            = mediator;
-        _services            = services;
-        _googleTokenStorage  = googleTokenStorage;
+        _mediator           = mediator;
+        _services           = services;
+        _googleTokenStorage = googleTokenStorage;
     }
 
-    partial void OnGeminiModelNameChanged(string value)   => RefreshHasChanges();
-    partial void OnGeminiApiKeyChanged(string value)      => RefreshHasChanges();
-    partial void OnCalendarFirstDayIndexChanged(int value) => RefreshHasChanges();
+    partial void OnGeminiModelNameChanged(string value)
+    {
+        if (_isLoading) return;
+        TriggerSave();
+    }
 
-    private void RefreshHasChanges() =>
-        HasChanges = GeminiModelName      != _loadedModelName   ||
-                     GeminiApiKey         != _loadedApiKey       ||
-                     CalendarFirstDay     != _loadedCalendarDay;
+    partial void OnGeminiApiKeyChanged(string value)
+    {
+        if (_isLoading) return;
+        TriggerSave();
+    }
+
+    partial void OnCalendarFirstDayIndexChanged(int value)
+    {
+        if (_isLoading) return;
+        _ = SaveImmediateAsync();
+    }
+
+    private void TriggerSave()
+    {
+        _saveCts?.Cancel();
+        _saveCts = new CancellationTokenSource();
+        _ = SaveWithDebounceAsync(_saveCts.Token);
+    }
+
+    private async Task SaveWithDebounceAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(500, ct);
+            await SaveImmediateAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer keystroke — expected
+        }
+    }
+
+    private async Task SaveImmediateAsync()
+        => await _mediator.Send(new SaveAppSettingsCommand(GeminiModelName, GeminiApiKey, CalendarFirstDay));
 
     [RelayCommand]
     private async Task LoadAiSettingsAsync()
     {
-        var dto = await _mediator.Send(new GetAppSettingsQuery());
-        _loadedModelName   = dto.GeminiModelName;
-        _loadedApiKey      = dto.GeminiApiKey;
-        _loadedCalendarDay = dto.CalendarFirstDay;
-        GeminiModelName    = dto.GeminiModelName;
-        GeminiApiKey       = dto.GeminiApiKey;
-        CalendarFirstDayIndex = dto.CalendarFirstDay == DayOfWeek.Monday ? 0 : 1;
-        HasChanges         = false;
-
-        HasGoogleToken     = await _googleTokenStorage.GetRefreshTokenAsync() is not null;
-    }
-
-    [RelayCommand(CanExecute = nameof(HasChanges))]
-    private async Task SaveAiSettingsAsync()
-    {
-        await _mediator.Send(new SaveAppSettingsCommand(GeminiModelName, GeminiApiKey, CalendarFirstDay));
-        _loadedModelName   = GeminiModelName;
-        _loadedApiKey      = GeminiApiKey;
-        _loadedCalendarDay = CalendarFirstDay;
-        HasChanges         = false;
+        _isLoading = true;
+        try
+        {
+            var dto = await _mediator.Send(new GetAppSettingsQuery());
+            GeminiModelName       = dto.GeminiModelName;
+            GeminiApiKey          = dto.GeminiApiKey;
+            CalendarFirstDayIndex = dto.CalendarFirstDay == DayOfWeek.Monday ? 0 : 1;
+            HasGoogleToken        = await _googleTokenStorage.GetRefreshTokenAsync() is not null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     [RelayCommand]
@@ -102,7 +122,6 @@ public partial class SettingsViewModel : ObservableObject
 
         if (!confirmed) return;
 
-        // Snapshot before delete so we can restore on cancel
         var snapshot = await _mediator.Send(new GetUserProfileQuery());
 
         await _mediator.Send(new DeleteUserProfileCommand());
@@ -110,7 +129,6 @@ public partial class SettingsViewModel : ObservableObject
         var wizardPage = _services.GetRequiredService<WizardPage>();
         wizardPage.ViewModel.PrepareForRerun();
 
-        // TaskCompletionSource bridges the modal lifecycle to this async method
         var tcs = new TaskCompletionSource<bool>();
         WeakReferenceMessenger.Default.Register<WizardDismissedMessage>(this, (_, m) =>
         {

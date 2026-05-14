@@ -18,4 +18,10 @@ public partial class TrendsPage : ContentPage
         await ViewModel.LoadAsync();
         EvolutionView.Invalidate();
     }
+
+    private void OnEvolutionTapped(object? sender, TappedEventArgs e)
+    {
+        ViewModel.ToggleZoom();
+        EvolutionView.Invalidate();
+    }
 }

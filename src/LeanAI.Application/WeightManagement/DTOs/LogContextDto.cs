@@ -10,5 +10,8 @@ public sealed record LogContextDto(
     double?    WeekFirstWeightKg,
     int        WeekDaysLogged,
     double?    IdealWeeklyLossKg,
-    UnitSystem UnitSystem
+    UnitSystem UnitSystem,
+    DateOnly   WeekStartDate,
+    double?    CurrentWeekAverageWeightKg,
+    double?    LastWeekAverageWeightKg
 );

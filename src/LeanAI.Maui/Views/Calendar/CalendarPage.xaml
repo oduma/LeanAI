@@ -37,18 +37,23 @@
         </VerticalStackLayout>
 
         <!-- Row 1: month navigation -->
-        <Grid Grid.Row="1" ColumnDefinitions="44,*,44">
-            <ImageButton
+        <Grid Grid.Row="1" ColumnDefinitions="72,*,72">
+
+            <!-- Previous month — large tap zone -->
+            <Grid
                 Grid.Column="0"
-                Command="{Binding PreviousMonthCommand}"
-                BackgroundColor="Transparent"
-                HorizontalOptions="Start"
-                VerticalOptions="Center">
-                <ImageButton.Source>
-                    <FontImageSource Glyph="&#x276E;" FontFamily="OpenSansRegular"
-                                    Color="{StaticResource ColorCopper}" Size="20" />
-                </ImageButton.Source>
-            </ImageButton>
+                Padding="20,16"
+                BackgroundColor="Transparent">
+                <Label
+                    Text="&#x276E;"
+                    TextColor="{StaticResource ColorCopper}"
+                    FontSize="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding PreviousMonthCommand}" />
+                </Grid.GestureRecognizers>
+            </Grid>
 
             <Label
                 Grid.Column="1"
@@ -59,17 +64,22 @@
                 HorizontalOptions="Center"
                 VerticalOptions="Center" />
 
-            <ImageButton
+            <!-- Next month — large tap zone -->
+            <Grid
                 Grid.Column="2"
-                Command="{Binding NextMonthCommand}"
-                BackgroundColor="Transparent"
-                HorizontalOptions="End"
-                VerticalOptions="Center">
-                <ImageButton.Source>
-                    <FontImageSource Glyph="&#x276F;" FontFamily="OpenSansRegular"
-                                    Color="{StaticResource ColorCopper}" Size="20" />
-                </ImageButton.Source>
-            </ImageButton>
+                Padding="20,16"
+                BackgroundColor="Transparent">
+                <Label
+                    Text="&#x276F;"
+                    TextColor="{StaticResource ColorCopper}"
+                    FontSize="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding NextMonthCommand}" />
+                </Grid.GestureRecognizers>
+            </Grid>
+
         </Grid>
 
         <!-- Row 2: day-of-week column headers -->

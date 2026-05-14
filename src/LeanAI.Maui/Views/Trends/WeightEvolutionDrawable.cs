@@ -27,6 +27,14 @@ public class WeightEvolutionDrawable : IDrawable
     public DateOnly FirstDate { get; set; }
     public DateOnly LastDate  { get; set; }
 
+    // Zoom mode
+    public bool     IsZoomed { get; set; }
+    public DateOnly ZoomFrom { get; set; }
+    public DateOnly ZoomTo   { get; set; }
+
+    private DateOnly EffectiveFirst => IsZoomed ? ZoomFrom : FirstDate;
+    private DateOnly EffectiveLast  => IsZoomed ? ZoomTo   : LastDate;
+
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         canvas.FillColor = ColorBase;
@@ -40,13 +48,22 @@ public class WeightEvolutionDrawable : IDrawable
             dirtyRect.Width  - MarginLeft   - MarginRight,
             dirtyRect.Height - MarginTop    - MarginBottom);
 
-        var allWeights = IdealSeries.Select(p => p.WeightKg)
-            .Concat(ActualSeries.Select(p => p.WeightKg));
-        var rawMin = allWeights.Min();
-        var rawMax = allWeights.Max();
+        // Y-axis range: when zoomed, restrict to in-window data for better granularity
+        IEnumerable<double> yIdeal  = IsZoomed
+            ? IdealSeries.Where(p => p.Date >= EffectiveFirst && p.Date <= EffectiveLast).Select(p => p.WeightKg)
+            : IdealSeries.Select(p => p.WeightKg);
+        IEnumerable<double> yActual = IsZoomed
+            ? ActualSeries.Where(p => p.Date >= EffectiveFirst && p.Date <= EffectiveLast).Select(p => p.WeightKg)
+            : ActualSeries.Select(p => p.WeightKg);
+
+        var allWeights = yIdeal.Concat(yActual).ToList();
+        if (allWeights.Count == 0) return;
+
+        var rawMin  = allWeights.Min();
+        var rawMax  = allWeights.Max();
         var padding = (rawMax - rawMin) * 0.05;
-        var yMin = rawMin - padding;
-        var yMax = rawMax + padding;
+        var yMin    = rawMin - padding;
+        var yMax    = rawMax + padding;
 
         DrawGrid(canvas, plot, yMin, yMax);
         DrawXLabels(canvas, plot);
@@ -80,8 +97,8 @@ public class WeightEvolutionDrawable : IDrawable
         canvas.FontSize  = LabelSize;
         canvas.FontColor = ColorNickel;
 
-        var current = new DateOnly(FirstDate.Year, FirstDate.Month, 1).AddMonths(1);
-        while (current <= LastDate)
+        var current = new DateOnly(EffectiveFirst.Year, EffectiveFirst.Month, 1).AddMonths(1);
+        while (current <= EffectiveLast)
         {
             var x = DateToX(current, plot);
             if (x >= plot.Left && x <= plot.Right)
@@ -145,9 +162,9 @@ public class WeightEvolutionDrawable : IDrawable
 
     private float DateToX(DateOnly date, RectF plot)
     {
-        var totalDays = LastDate.DayNumber - FirstDate.DayNumber;
+        var totalDays = EffectiveLast.DayNumber - EffectiveFirst.DayNumber;
         if (totalDays == 0) return plot.Left;
-        var fraction = (date.DayNumber - FirstDate.DayNumber) / (float)totalDays;
+        var fraction = (date.DayNumber - EffectiveFirst.DayNumber) / (float)totalDays;
         return plot.Left + fraction * plot.Width;
     }
 
