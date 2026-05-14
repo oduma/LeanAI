@@ -13,9 +13,10 @@ public sealed class GetAppSettingsQueryHandler(
 {
     public async Task<AppSettingsDto> Handle(GetAppSettingsQuery request, CancellationToken cancellationToken)
     {
-        var settings = await settingsRepository.GetAsync(cancellationToken);
-        var modelName = settings?.GeminiModelName ?? AppSettings.DefaultModelName;
-        var apiKey = await apiKeyStorage.GetAsync(ApiKeyNames.Gemini, cancellationToken) ?? string.Empty;
-        return new AppSettingsDto(modelName, apiKey);
+        var settings        = await settingsRepository.GetAsync(cancellationToken);
+        var modelName       = settings?.GeminiModelName  ?? AppSettings.DefaultModelName;
+        var calendarFirstDay = settings?.CalendarFirstDay ?? DayOfWeek.Monday;
+        var apiKey          = await apiKeyStorage.GetAsync(ApiKeyNames.Gemini, cancellationToken) ?? string.Empty;
+        return new AppSettingsDto(modelName, apiKey, calendarFirstDay);
     }
 }

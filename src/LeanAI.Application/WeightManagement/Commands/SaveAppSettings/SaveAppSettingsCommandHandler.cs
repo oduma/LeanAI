@@ -13,7 +13,8 @@ public sealed class SaveAppSettingsCommandHandler(
     public async Task<Unit> Handle(SaveAppSettingsCommand request, CancellationToken cancellationToken)
     {
         var settings = await settingsRepository.GetAsync(cancellationToken) ?? new AppSettings();
-        settings.GeminiModelName = request.GeminiModelName;
+        settings.GeminiModelName  = request.GeminiModelName;
+        settings.CalendarFirstDay = request.CalendarFirstDay;
         await settingsRepository.SaveAsync(settings, cancellationToken);
         await apiKeyStorage.SetAsync(ApiKeyNames.Gemini, request.GeminiApiKey, cancellationToken);
         return Unit.Value;

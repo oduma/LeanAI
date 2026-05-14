@@ -13,10 +13,11 @@ namespace LeanAI.Tests.Application.WeightManagement;
 
 public class ImportGoogleSheetsCommandHandlerTests
 {
-    private readonly Mock<IGoogleSheetsService>         _serviceMock    = new();
-    private readonly Mock<IDailyActualWeightRepository> _actualRepoMock = new();
+    private readonly Mock<IGoogleSheetsService>         _serviceMock     = new();
+    private readonly Mock<IDailyActualWeightRepository> _actualRepoMock  = new();
     private readonly Mock<IUserProfileRepository>       _profileRepoMock = new();
-    private readonly Mock<IMediator>                    _mediatorMock   = new();
+    private readonly Mock<IMediator>                    _mediatorMock    = new();
+    private readonly Mock<IWeeklyAverageRepository>     _weeklyRepoMock  = new();
     private readonly ImportGoogleSheetsCommandHandler   _handler;
 
     private static readonly DateOnly Day1 = new(2025, 1, 10);
@@ -39,7 +40,12 @@ public class ImportGoogleSheetsCommandHandlerTests
             _serviceMock.Object,
             _actualRepoMock.Object,
             _profileRepoMock.Object,
-            _mediatorMock.Object);
+            _mediatorMock.Object,
+            _weeklyRepoMock.Object);
+
+        _weeklyRepoMock
+            .Setup(r => r.UpsertAsync(It.IsAny<WeeklyAverage>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _profileRepoMock
             .Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
@@ -281,5 +287,35 @@ public class ImportGoogleSheetsCommandHandlerTests
                 c.TargetWeightKg   == 70.0   &&
                 c.ExactTotalDays   == 3),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_AfterImport_UpsertsWeeklyAveragePerWeek()
+    {
+        // Day1=Jan 10 (Fri), Day2=Jan 11 (Sat), Day3=Jan 12 (Sun) — all in week Jan 6–12
+        _serviceMock
+            .Setup(s => s.GetRowsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SheetRow>
+            {
+                new(Day1, 88.0, null, false),
+                new(Day2, 87.0, null, false),
+                new(Day3, 86.0, null, false),
+            });
+
+        _actualRepoMock
+            .Setup(r => r.InsertBatchAsync(It.IsAny<IEnumerable<DailyActualWeight>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var upsertedAverages = new List<WeeklyAverage>();
+        _weeklyRepoMock
+            .Setup(r => r.UpsertAsync(It.IsAny<WeeklyAverage>(), It.IsAny<CancellationToken>()))
+            .Callback<WeeklyAverage, CancellationToken>((e, _) => upsertedAverages.Add(e))
+            .Returns(Task.CompletedTask);
+
+        await _handler.Handle(BaseCmd, CancellationToken.None);
+
+        upsertedAverages.Should().HaveCount(1);
+        upsertedAverages[0].WeekStart.Should().Be(new DateOnly(2025, 1, 6)); // Monday of Jan 10–12 week
+        upsertedAverages[0].AverageWeightKg.Should().BeApproximately((88.0 + 87.0 + 86.0) / 3, 0.001);
     }
 }

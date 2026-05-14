@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:log="clr-namespace:LeanAI.Maui.Views.Log"
     xmlns:trends="clr-namespace:LeanAI.Maui.Views.Trends"
+    xmlns:calendar="clr-namespace:LeanAI.Maui.Views.Calendar"
     xmlns:settings="clr-namespace:LeanAI.Maui.Views.Settings"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{StaticResource ColorBase}">
@@ -20,6 +21,11 @@
             Icon="trends_tab.svg"
             ContentTemplate="{DataTemplate trends:TrendsPage}"
             Route="Trends" />
+        <ShellContent
+            Title="Calendar"
+            Icon="calendar_tab.svg"
+            ContentTemplate="{DataTemplate calendar:CalendarPage}"
+            Route="Calendar" />
         <ShellContent
             Title="Settings"
             Icon="settings_tab.svg"

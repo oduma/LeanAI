@@ -32,6 +32,7 @@ public class GetAppSettingsQueryHandlerTests
 
         result.GeminiModelName.Should().Be(AppSettings.DefaultModelName);
         result.GeminiApiKey.Should().BeEmpty();
+        result.CalendarFirstDay.Should().Be(DayOfWeek.Monday);
     }
 
     [Fact]
@@ -48,6 +49,7 @@ public class GetAppSettingsQueryHandlerTests
 
         result.GeminiModelName.Should().Be(AppSettings.DefaultModelName);
         result.GeminiApiKey.Should().Be("my-api-key");
+        result.CalendarFirstDay.Should().Be(DayOfWeek.Monday);
     }
 
     [Fact]
@@ -82,5 +84,22 @@ public class GetAppSettingsQueryHandlerTests
 
         result.GeminiModelName.Should().Be("gemini-1.5-pro");
         result.GeminiApiKey.Should().Be("stored-key");
+        result.CalendarFirstDay.Should().Be(DayOfWeek.Monday);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSettingsHaveSundayFirstDay_ReturnsSunday()
+    {
+        var settings = new AppSettings { CalendarFirstDay = DayOfWeek.Sunday };
+        _settingsRepoMock
+            .Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings);
+        _apiKeyStorageMock
+            .Setup(s => s.GetAsync(ApiKeyNames.Gemini, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var result = await _handler.Handle(new GetAppSettingsQuery(), CancellationToken.None);
+
+        result.CalendarFirstDay.Should().Be(DayOfWeek.Sunday);
     }
 }

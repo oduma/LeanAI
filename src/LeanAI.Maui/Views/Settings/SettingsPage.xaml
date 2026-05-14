@@ -96,6 +96,33 @@
                     </Border>
                 </VerticalStackLayout>
 
+                <!-- Calendar First Day field -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="First Day of Week"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="13" />
+                    <Border
+                        BackgroundColor="#1A1A1A"
+                        StrokeThickness="0"
+                        Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Picker
+                            SelectedIndex="{Binding CalendarFirstDayIndex}"
+                            TextColor="{StaticResource ColorText}"
+                            BackgroundColor="Transparent"
+                            FontSize="15"
+                            Margin="12,4">
+                            <Picker.Items>
+                                <x:String>Monday</x:String>
+                                <x:String>Sunday</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </Border>
+                </VerticalStackLayout>
+
                 <!-- Gemini API Key field -->
                 <VerticalStackLayout Spacing="6">
                     <Label

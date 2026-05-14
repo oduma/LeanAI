@@ -34,12 +34,13 @@ public class SaveAppSettingsCommandHandlerTests
             .Setup(s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var command = new SaveAppSettingsCommand("gemini-1.5-pro", "new-api-key");
+        var command = new SaveAppSettingsCommand("gemini-1.5-pro", "new-api-key", DayOfWeek.Monday);
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Should().Be(Unit.Value);
         savedSettings.Should().NotBeNull();
         savedSettings!.GeminiModelName.Should().Be("gemini-1.5-pro");
+        savedSettings.CalendarFirstDay.Should().Be(DayOfWeek.Monday);
         _settingsRepoMock.Verify(r => r.SaveAsync(It.IsAny<AppSettings>(), It.IsAny<CancellationToken>()), Times.Once);
         _apiKeyStorageMock.Verify(s => s.SetAsync(ApiKeyNames.Gemini, "new-api-key", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -60,12 +61,13 @@ public class SaveAppSettingsCommandHandlerTests
             .Setup(s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var command = new SaveAppSettingsCommand("gemini-2.5-flash", "updated-key");
+        var command = new SaveAppSettingsCommand("gemini-2.5-flash", "updated-key", DayOfWeek.Sunday);
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Should().Be(Unit.Value);
         savedSettings.Should().BeSameAs(existingSettings);
         savedSettings!.GeminiModelName.Should().Be("gemini-2.5-flash");
+        savedSettings.CalendarFirstDay.Should().Be(DayOfWeek.Sunday);
         _settingsRepoMock.Verify(r => r.SaveAsync(existingSettings, It.IsAny<CancellationToken>()), Times.Once);
         _apiKeyStorageMock.Verify(s => s.SetAsync(ApiKeyNames.Gemini, "updated-key", It.IsAny<CancellationToken>()), Times.Once);
     }

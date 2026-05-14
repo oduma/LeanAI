@@ -14,7 +14,8 @@ public sealed class ImportGoogleSheetsCommandHandler(
     IGoogleSheetsService         sheetsService,
     IDailyActualWeightRepository actualRepo,
     IUserProfileRepository       profileRepo,
-    IMediator                    mediator)
+    IMediator                    mediator,
+    IWeeklyAverageRepository     weeklyRepo)
     : IRequestHandler<ImportGoogleSheetsCommand, ImportSummaryDto>
 {
     public async Task<ImportSummaryDto> Handle(ImportGoogleSheetsCommand request, CancellationToken cancellationToken)
@@ -102,6 +103,18 @@ public sealed class ImportGoogleSheetsCommandHandler(
         if (toInsert.Count > 0)
             await actualRepo.InsertBatchAsync(toInsert, cancellationToken);
 
+        // Phase 3 — upsert weekly averages for every Mon–Sun week touched by the import
+        var allImported = existingEntries.ToList();
+        allImported.AddRange(toInsert);
+
+        var weekGroups = allImported.GroupBy(e => GetMonday(e.Date));
+        foreach (var group in weekGroups)
+        {
+            await weeklyRepo.UpsertAsync(
+                new WeeklyAverage { WeekStart = group.Key, AverageWeightKg = group.Average(e => e.WeightKg) },
+                cancellationToken);
+        }
+
         return new ImportSummaryDto(
             TotalDatesFound:       totalDatesFound,
             IdealDatesImported:    totalDays,
@@ -114,4 +127,10 @@ public sealed class ImportGoogleSheetsCommandHandler(
 
     private static double ToKg(double value, UnitSystem unit) =>
         unit == UnitSystem.Imperial ? UnitConverter.LbToKg(value) : value;
+
+    private static DateOnly GetMonday(DateOnly date)
+    {
+        var daysFromMonday = ((int)date.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        return date.AddDays(-daysFromMonday);
+    }
 }

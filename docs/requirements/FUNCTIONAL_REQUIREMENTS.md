@@ -195,3 +195,70 @@ Enable users to migrate historical weight data from Google Sheets to LeanAI to p
 | Partial last week | `GoalEndDate` is always appended as a final weekly anchor, even when mid-week |
 
 - **DoD:** ✅ User can see the full weight evolution against the ideal line and identify weekly loss/gain trends. 95/95 tests passing.
+
+---
+
+## Phase 6: The History Hub (Calendar & Engagement) ✅ COMPLETE
+
+### Goal
+Provide a high-density, interactive historical overview of user progress through a gamified calendar interface to drive long-term engagement.
+
+### Functional Requirements
+
+#### Calendar View
+- A new screen accessible from the bottom menu tab.
+- A standard monthly grid with navigational controls (Previous / Next Month).
+- **Date boundary:** Calendar spans `GoalStartDate` to `GoalEndDate` only. Days outside this range are dimmed and non-clickable; navigation must not allow access to data entry for those days.
+- **Month continuity:** Weeks flow across month boundaries — e.g., if 30 April falls on a Thursday, the same row continues with Friday 1 May.
+- **First-day-of-week setting (Settings screen):** User can choose Sunday or Monday as the first column of the weekly grid. This setting affects calendar display only.
+
+#### Interactive Cells
+- Past dates within the goal date range (on or before today) are always tappable, whether or not a record exists.
+- Future dates within the goal date range (after today) are **not** tappable.
+- Tapping opens the data-entry screen (`LogPage`) pushed modally for that date:
+    - Pre-populated with existing data if a weight record exists for that day.
+    - Opens in new-entry mode if no record exists.
+
+#### Achievement Matrix — Visual Logic
+
+| State | Visual | Clickable |
+|-------|--------|-----------|
+| Day outside goal range | Dimmed Nickel (35% opacity), no halo | No |
+| Future day within goal range | Dimmed Nickel (35% opacity), no halo | No |
+| Past day within goal range, no record | Dimmed Nickel, no halo | Yes — opens new-entry mode |
+| Past day within goal range, has record | Active; halo + coloured day number | Yes — opens pre-populated entry |
+
+**Daily Delta (Halo):**
+- **Copper circle halo:** Today's weight is *lower* than the previous recorded day's weight (progress), **or** this is the very first recorded day (optimistic default — no prior day to compare).
+- **Nickel circle halo:** Today's weight is *higher than or equal to* the previous recorded day's weight (stagnation / gain).
+
+**Weekly Trend (Text colour):**
+- **Copper text:** The current calendar week's average weight is *lower* than the previous week's average (positive trend).
+- **Nickel text:** The current calendar week's average weight is *higher than or equal to* the previous week's average (negative trend).
+
+### Technical Specifications
+- **View component:** MAUI `CollectionView` (`GridItemsLayout`, Span=7) for calendar cells.
+- **State management:** `ObservableCollection<CalendarDayViewModel>` drives UI states (colours, halo, clickability) computed from SQLite data via `GetCalendarMonthQuery`.
+- **Weekly averages persistence:** New `WeeklyAverages` DB table (keyed on the Monday of each Mon–Sun week). Updated in two places:
+    1. `UpsertDailyLogCommandHandler` — after every daily weight save (including historical edits via the calendar).
+    2. `ImportGoogleSheetsCommandHandler` Phase 3 — after the batch import, all written entries are grouped by their Mon–Sun Monday, and a weekly average is computed and upserted for every affected week. This ensures the calendar is immediately populated with trend data after an import without requiring a separate recalculation step.
+- **`CalendarFirstDay` setting:** Stored in the `AppSettings` table. Default = Monday. Affects column header order only; does not change how averages are computed.
+- **LogPage reuse:** Pushed modally from `CalendarViewModel` (same pattern as the Wizard). `LogViewModel` gains a `LoadForDateAsync(DateOnly)` entry point for modal use.
+- **Tab order:** Log | Trends | **Calendar** | Settings. Calendar icon = calendar-related SVG asset.
+- **Calendar cell sizing:** Cells fill the available vertical space dynamically. `CalendarViewModel` exposes a `CellHeight` observable property updated via `CalendarPage`'s `SizeChanged` event on the grid `CollectionView`. The number of week rows (always `Days.Count / 7`) is tracked after each month load; `CellHeight = availableGridHeight / weekRowCount`. Day-number label `FontSize=20` (bold); halo ellipse `50×50`. This ensures the grid fills the screen on all device sizes without hardcoded heights.
+- **UI palette:**
+    - Background: Deep brushed charcoal / black (`ColorBase`).
+    - Positive trend: Luminous Copper (`#D28B5C`) for halos and text.
+    - Stagnation / gain: Matte Nickel (`#9A9EAB`) for halos and text.
+    - No data / out-of-range: Dimmed Nickel with reduced opacity (35%).
+
+### Definition of Done
+- ✅ Users can navigate between months and see accurately colour-coded achievement markers for each recorded day.
+- ✅ Clicking a valid date with existing data opens the pre-populated log entry.
+- ✅ Clicking a valid date with no data opens the log entry in new-entry mode.
+- ✅ Days outside `GoalStartDate`–`GoalEndDate` are dimmed and tapping them does nothing.
+- ✅ Future in-range dates are dimmed and non-clickable.
+- ✅ First-day-of-week setting (Sunday / Monday) is available in Settings and correctly reorders calendar columns.
+- ✅ Calendar cells fill the available screen height dynamically — no hardcoded row heights.
+- ✅ Weekly averages are calculated and persisted after Google Sheets import.
+- ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all 123 tests green.

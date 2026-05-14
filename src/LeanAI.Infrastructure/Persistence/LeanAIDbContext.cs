@@ -9,6 +9,7 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
     public DbSet<DailyIdealWeight>  DailyIdealWeights  => Set<DailyIdealWeight>();
     public DbSet<DailyActualWeight> DailyActualWeights => Set<DailyActualWeight>();
     public DbSet<AppSettings>       AppSettings        => Set<AppSettings>();
+    public DbSet<WeeklyAverage>     WeeklyAverages     => Set<WeeklyAverage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,20 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.HasKey(e => e.Id);
             entity.Ignore(e => e.DomainEvents);
             entity.Property(e => e.GeminiModelName).IsRequired();
+            entity.Property(e => e.CalendarFirstDay)
+                  .HasConversion<int>()
+                  .IsRequired();
+        });
+
+        modelBuilder.Entity<WeeklyAverage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.WeekStart).IsRequired()
+                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
+                                 s => DateOnly.Parse(s));
+            entity.HasIndex(e => e.WeekStart).IsUnique();
+            entity.Property(e => e.AverageWeightKg).IsRequired();
         });
     }
 }

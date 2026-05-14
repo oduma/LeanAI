@@ -9,6 +9,7 @@ using LeanAI.Maui.ViewModels;
 using LeanAI.Maui.Views.Import;
 using LeanAI.Maui.Views.Log;
 using LeanAI.Maui.Views.Settings;
+using LeanAI.Maui.Views.Calendar;
 using LeanAI.Maui.Views.Trends;
 using LeanAI.Maui.Views.Wizard;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,7 @@ public static class MauiProgram
         builder.Services.AddTransient<WizardPage>();
         builder.Services.AddTransient<LogPage>();
         builder.Services.AddTransient<TrendsPage>();
+        builder.Services.AddTransient<CalendarPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<ImportWizardPage>();
 
@@ -52,6 +54,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<LogViewModel>();
         builder.Services.AddTransient<TrendsViewModel>();
+        builder.Services.AddTransient<CalendarViewModel>();
         builder.Services.AddTransient<ImportWizardViewModel>();
 
         // Platform services

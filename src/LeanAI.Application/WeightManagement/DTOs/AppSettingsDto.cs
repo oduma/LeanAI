@@ -1,3 +1,6 @@
 namespace LeanAI.Application.WeightManagement.DTOs;
 
-public sealed record AppSettingsDto(string GeminiModelName, string GeminiApiKey);
+public sealed record AppSettingsDto(
+    string   GeminiModelName,
+    string   GeminiApiKey,
+    DayOfWeek CalendarFirstDay);

@@ -1,5 +1,11 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Infrastructure\" -Recurse -Filter \"*.cs\")",
+      "Bash(Select-Object FullName)",
+      "PowerShell(cd c:\\\\Code\\\\LeanAI && dotnet build src\\\\LeanAI.Maui\\\\LeanAI.Maui.csproj -f net10.0-android -c Debug 2>&1 | Where-Object { $_ -match \"error|warning|Build succeeded|Build FAILED\" } | Select-Object -Last 20)",
+      "PowerShell(dotnet build c:\\\\Code\\\\LeanAI 2>&1)"
+    ],
     "additionalDirectories": [
       "c:\\Users\\scien\\.claude\\projects\\c--Code-LeanAI\\memory"
     ]

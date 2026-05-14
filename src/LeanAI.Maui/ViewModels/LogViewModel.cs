@@ -20,6 +20,7 @@ public partial class LogViewModel : ObservableObject
     private UnitSystem _unitSystem           = UnitSystem.Metric;
     private bool       _todayWasAlreadySaved;
     private bool       _isLoading;
+    private bool       _dateWasExplicitlySet;   // set by LoadForDateAsync (modal path)
     private CancellationTokenSource? _saveCts;
 
     [ObservableProperty] private DateOnly _entryDate = DateOnly.FromDateTime(DateTime.Today);
@@ -53,13 +54,27 @@ public partial class LogViewModel : ObservableObject
         TriggerSave();
     }
 
+    /// <summary>Called by CalendarPage when pushing this page modally for a specific date.</summary>
+    public async Task LoadForDateAsync(DateOnly date, CancellationToken ct = default)
+    {
+        _dateWasExplicitlySet = true;
+        await LoadCoreAsync(date, ct);
+    }
+
     [RelayCommand]
     private async Task LoadLogAsync()
     {
-        EntryDate      = DateOnly.FromDateTime(DateTime.Today);
-        EntryDateLabel = EntryDate.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+        // Guard: if the date was already set via LoadForDateAsync (modal path), skip the tab-flow re-load.
+        if (_dateWasExplicitlySet) return;
+        await LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
+    }
 
-        var ctx = await _mediator.Send(new GetLogContextQuery(EntryDate));
+    private async Task LoadCoreAsync(DateOnly date, CancellationToken ct = default)
+    {
+        EntryDate      = date;
+        EntryDateLabel = date.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+
+        var ctx = await _mediator.Send(new GetLogContextQuery(EntryDate), ct);
 
         _yesterdayWeightKg    = ctx.YesterdayWeightKg;
         _todayIdealWeightKg   = ctx.TodayIdealWeightKg;
