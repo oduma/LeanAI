@@ -69,10 +69,8 @@ public partial class CalendarViewModel(IMediator mediator, IServiceProvider serv
     {
         if (!day.IsClickable) return;
 
-        var logVm = serviceProvider.GetRequiredService<LogViewModel>();
-        await logVm.LoadForDateAsync(day.Date);
-
         var page = serviceProvider.GetRequiredService<Views.Log.LogPage>();
+        await page.ViewModel.LoadForDateAsync(day.Date);
         await Shell.Current.Navigation.PushModalAsync(page);
     }
 
