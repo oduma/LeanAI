@@ -1,3 +1,4 @@
+using LeanAI.Domain.ActivityTracking.Entities;
 using LeanAI.Domain.WeightManagement.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,7 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
     public DbSet<DailyActualWeight> DailyActualWeights => Set<DailyActualWeight>();
     public DbSet<AppSettings>       AppSettings        => Set<AppSettings>();
     public DbSet<WeeklyAverage>     WeeklyAverages     => Set<WeeklyAverage>();
+    public DbSet<ActivityLog>       ActivityLogs       => Set<ActivityLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +76,19 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                                  s => DateOnly.Parse(s));
             entity.HasIndex(e => e.WeekStart).IsUnique();
             entity.Property(e => e.AverageWeightKg).IsRequired();
+        });
+
+        modelBuilder.Entity<ActivityLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.Date).IsRequired()
+                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
+                                 s => DateOnly.Parse(s));
+            entity.Property(e => e.Activity).IsRequired();
+            entity.Property(e => e.ParameterName).IsRequired();
+            entity.Property(e => e.Value).IsRequired();
+            entity.Property(e => e.Unit).IsRequired();
         });
     }
 }

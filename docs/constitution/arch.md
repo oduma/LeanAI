@@ -13,7 +13,7 @@
 - **Domain:** Pure C#. Contains Entities, Value Objects, Domain Exceptions, and Repository Interfaces. Zero dependencies on other layers or frameworks (no MAUI, no SQLite).
 - **Application:** Contains Use Cases (Interactors) and DTOs. Orchestrates the flow of data to and from the Domain.
 - **Infrastructure:** Implementation of Repositories (SQLite), External APIs (Shared Run Data), and Device Services (GPS).
-- **Presentation (MAUI):** ViewModels and Views. 
+- **Presentation (MAUI):** ViewModels and Views. For platform-specific OS entry points (e.g., Android share-sheet intents), a native platform `Activity` (extending the platform base class directly, not `MauiAppCompatActivity`) acts as a thin proxy: it reads the OS payload, resolves `IMediator` via `IPlatformApplication.Current!.Services`, and dispatches a command. No business logic lives in the Activity itself.
 
 ## 2. Domain-Driven Design (DDD)
 - **Bounded Contexts:** Explicitly separate 'WeightManagement' from 'ActivityTracking'.

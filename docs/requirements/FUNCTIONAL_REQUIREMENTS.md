@@ -402,3 +402,114 @@ Polish all four main screens for readability and usability: larger fonts and bet
 - ✅ Android launcher icon updated with assets from toolkit (`play_store_512.png` replaces source icon; MAUI generates mipmap densities at build time).
 - ✅ `dotnet test` → 127 tests, 0 failures.
 - ✅ `dotnet build` → 0 errors, 0 warnings (pre-existing SkiaSharp XA0141 warning unrelated to Phase 7).
+
+---
+
+## Phase 8: Third-Party Integration — Import Run via Share Sheet ✅ COMPLETE
+
+### Goal
+Allow the user to share a screenshot of a run from any third-party activity tracking app (Strava, Nike Run Club, Garmin, etc.) directly into LeanAI via the Android Share Sheet. LeanAI extracts the distance, pace, and duration using Gemini Vision, stores the metrics in the database, and appends a human-readable summary to today's weight log comment.
+
+---
+
+### Functional Requirements
+
+#### Android Share Sheet Entry Point
+- The app registers an Android Activity named **"LeanAI: Import Run"** that appears in the Android Share Sheet whenever the user shares an image (`image/*` MIME type).
+- The Activity is a thin proxy: it reads the image from the share intent, resolves the MediatR mediator from the DI container, and dispatches `ImportRunCommand`. All business logic lives in the command handler.
+- The design is explicitly extensible — future activity types (cycling, swimming) add a new Android Activity with a new label and a new command; no existing code is modified.
+
+#### Image-to-Metrics Extraction (Gemini Vision)
+- `ImportRunCommand` carries the raw image bytes, the image MIME type (resolved from the Android content resolver), and today's date.
+- The command handler delegates image analysis to `IRunImageAnalysisService` (Application layer interface), implemented in Infrastructure by `GeminiRunImageAnalysisService`.
+- The Gemini prompt asks the model to extract exactly three metrics and respond in a strict JSON array format:
+  ```json
+  [
+    { "parameter_name": "distance", "value": 5.2, "unit": "km" },
+    { "parameter_name": "pace",     "value": "5:30", "unit": "min/km" },
+    { "parameter_name": "duration", "value": "28:30", "unit": "mm:ss" }
+  ]
+  ```
+  - `parameter_name` is an enum: `"distance"`, `"pace"`, or `"duration"`.
+  - `value` may be a number or a string (e.g., pace is `"5:30"`).
+  - `unit` is a plain string.
+- If Gemini returns a response that cannot be parsed as the expected JSON array (missing fields, wrong format, empty array), the service throws an exception indicating extraction failure.
+
+#### Database — `ActivityLogs` Table (new, `ActivityTracking` bounded context)
+- A new `ActivityLog` domain entity lives in the `ActivityTracking` bounded context (separate from `WeightManagement`).
+- Schema: `Id` (Guid PK), `Date` (DateOnly), `Activity` (string), `ParameterName` (string), `Value` (string), `Unit` (string).
+- For each run import, **three rows** are inserted — one per extracted metric (distance, pace, duration).
+- `Activity` is always `"run"` for this phase.
+- A new EF Core migration adds the `ActivityLogs` table without modifying any existing table.
+
+#### Comment Appending (cross-context via mediator)
+- After storing the activity metrics, the handler dispatches `AppendActivityCommentCommand(DateOnly Date, string Comment)` via the mediator (cross-context call into `WeightManagement`).
+- The comment text is formatted as:
+  ```
+  I run for {distance_value}{distance_unit} at a pace of {pace_value}{pace_unit}. Total time: {duration_value}{duration_unit}.
+  ```
+  Example: `I run for 5.2km at a pace of 5:30min/km. Total time: 28:30.`
+- `AppendActivityCommentCommandHandler` behavior:
+  - **Entry exists for today:** append the comment to `DailyActualWeight.Notes` (with a newline prefix if Notes is not empty). Weight is never modified.
+  - **No entry for today:** create a new `DailyActualWeight` with `WeightKg = 0` and `Notes = comment`.
+
+#### User Feedback (Android Toasts)
+- **Success:** A short Android Toast is shown: `"Run imported: {distance_value} {distance_unit} in {duration_value} {duration_unit}."` (e.g., `"Run imported: 5.2 km in 28:30."`). The Activity then finishes.
+- **Failure:** A long Android Toast is shown: `"Could not extract run data — please try again."` The Activity then finishes.
+- Both Toasts are shown from the `ImportRunActivity` after the command completes or throws.
+
+---
+
+### Technical Specifications
+
+#### New Bounded Context: `ActivityTracking`
+
+**Domain (`LeanAI.Domain/ActivityTracking/`)**
+- `ActivityLog` entity extending `BaseEntity`: `DateOnly Date`, `string Activity`, `string ParameterName`, `string Value`, `string Unit`.
+- `IActivityLogRepository` interface: `Task AddRangeAsync(IEnumerable<ActivityLog> logs, CancellationToken ct)`.
+
+**Application (`LeanAI.Application/ActivityTracking/`)**
+- `ActivityMetricDto` record: `(string ParameterName, string Value, string Unit)`.
+- `IRunImageAnalysisService` interface: `Task<IReadOnlyList<ActivityMetricDto>> AnalyzeAsync(byte[] imageBytes, string mimeType, CancellationToken ct)`.
+- `ImportRunCommand(byte[] ImageBytes, string MimeType, DateOnly Date)` implementing `IRequest<IReadOnlyList<ActivityMetricDto>>`.
+- `ImportRunCommandHandler`: injects `IRunImageAnalysisService`, `IActivityLogRepository`, `IMediator`. Analyzes image → saves 3 `ActivityLog` rows → dispatches `AppendActivityCommentCommand`.
+
+**Application (`LeanAI.Application/WeightManagement/Commands/AppendActivityComment/`)**
+- `AppendActivityCommentCommand(DateOnly Date, string Comment)` implementing `IRequest`.
+- `AppendActivityCommentCommandHandler`: injects `IDailyActualWeightRepository`. Upserts `DailyActualWeight.Notes` for the given date without touching `WeightKg`.
+
+**Infrastructure (`LeanAI.Infrastructure/ActivityTracking/`)**
+- `ActivityLogRepository`: EF Core implementation of `IActivityLogRepository`.
+- `GeminiRunImageAnalysisService`: implementation of `IRunImageAnalysisService`. Sends a multimodal chat message (image + text) to Gemini via `IChatClient`. Parses the JSON array response; throws `InvalidOperationException` if parsing fails or the array is empty/incomplete.
+
+**Infrastructure — Database**
+- `LeanAIDbContext` gains `DbSet<ActivityLog> ActivityLogs`.
+- EF Core migration: `Add_ActivityLogs` — adds `ActivityLogs` table, no existing tables altered.
+
+**Presentation — Android (`LeanAI.Maui/Platforms/Android/`)**
+- `ImportRunActivity` extending Android `Activity` (not `MauiAppCompatActivity`).
+- `[IntentFilter]` attribute: `ActionSend`, `CategoryDefault`, `DataMimeType = "image/*"`, `Label = "LeanAI: Import Run"`, `Exported = true`.
+- On `OnCreate`: reads image URI from `Intent.ExtraStream`, resolves MIME type from `ContentResolver`, reads bytes into `byte[]`, resolves `IMediator` via `IPlatformApplication.Current!.Services`, dispatches `ImportRunCommand` asynchronously via `Task.Run`, shows success or failure Toast via `RunOnUiThread`, calls `Finish()`.
+- **Loading screen:** `SetContentView` is called at the start of `OnCreate` with a programmatic layout showing the LeanAI colour palette (dark background `#222222`, copper spinner `#D28B5C`, nickel label `#9A9EAB`) so the user sees a branded spinner instead of a blank white window during the AI call.
+- **Fresh-process API key provisioning:** When the share-sheet Activity starts in a fresh process (i.e., the MAUI main window has never opened), `App.xaml.cs`'s `ProvisionAiSettingsAsync()` is never called and `GeminiKeyHolder.ApiKey` remains empty. `ImportRunActivity` must therefore read the key from `SecureStorage` (key name `"gemini_key"`) and set it on the singleton `GeminiKeyHolder` inside `Task.Run`, before the mediator send. This mirrors what `App.xaml.cs` does at window creation time.
+
+**DI Registration**
+- `IActivityLogRepository → ActivityLogRepository` (scoped) in `DependencyInjection.cs`.
+- `IRunImageAnalysisService → GeminiRunImageAnalysisService` (transient) in `DependencyInjection.cs`.
+
+**Test project**
+- `LeanAI.Infrastructure` added as a `<ProjectReference>` in `LeanAI.Tests.csproj` so that `GeminiRunImageAnalysisService.ParseResponse` (marked `internal static`) can be tested directly.
+- `[assembly: InternalsVisibleTo("LeanAI.Tests")]` added to `LeanAI.Infrastructure.csproj`.
+
+---
+
+### Definition of Done
+- ✅ Android Share Sheet lists "LeanAI: Import Run" when sharing any image from another app.
+- ✅ Sharing a valid run screenshot extracts distance, pace, and duration from Gemini and stores 3 `ActivityLog` rows in the DB.
+- ✅ Today's `DailyActualWeight.Notes` is updated with the run summary (entry created with `WeightKg = 0` if none existed).
+- ✅ Success Toast confirms the imported metrics.
+- ✅ Sharing an invalid image shows the failure Toast.
+- ✅ `AppendActivityCommentCommandHandler` and `ImportRunCommandHandler` tested at 100% branch coverage.
+- ✅ `GeminiRunImageAnalysisService` parse logic tested with valid JSON, malformed JSON, empty array, and missing fields.
+- ✅ EF Core migration applies cleanly with no data loss to existing tables.
+- ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all tests green (140 total).

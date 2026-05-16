@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\LeanAI.Domain\LeanAI.Domain.csproj" />
     <ProjectReference Include="..\..\src\LeanAI.Application\LeanAI.Application.csproj" />
+    <ProjectReference Include="..\..\src\LeanAI.Infrastructure\LeanAI.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

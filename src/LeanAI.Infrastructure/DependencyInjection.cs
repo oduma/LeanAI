@@ -1,6 +1,10 @@
+using LeanAI.Application.ActivityTracking.Services;
 using LeanAI.Application.WeightManagement.Services;
+using LeanAI.Domain.ActivityTracking.Interfaces;
 using LeanAI.Domain.WeightManagement.Entities;
 using LeanAI.Domain.WeightManagement.Interfaces;
+using LeanAI.Infrastructure.ActivityTracking.Repositories;
+using LeanAI.Infrastructure.ActivityTracking.Services;
 using LeanAI.Infrastructure.Persistence;
 using LeanAI.Infrastructure.Repositories;
 using LeanAI.Infrastructure.Services;
@@ -38,6 +42,8 @@ public static class DependencyInjection
         });
 
         services.AddTransient<IAIGoalValidationService, GeminiGoalValidationService>();
+        services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+        services.AddTransient<IRunImageAnalysisService, GeminiRunImageAnalysisService>();
 
         services.AddHttpClient<GoogleOAuthService>();
         services.AddSingleton<IGoogleSheetsService, GoogleSheetsService>();
