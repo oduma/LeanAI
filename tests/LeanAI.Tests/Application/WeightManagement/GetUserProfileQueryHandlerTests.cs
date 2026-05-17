@@ -46,7 +46,7 @@ public class GetUserProfileQueryHandlerTests
             TargetPeriod     = TargetPeriod.OneYear,
             UnitSystem       = UnitSystem.Metric
         };
-        var expectedDto = new UserProfileDto(profile.Id, UnitSystem.Metric, Gender.Male, 35, 180.0, 85.0, 75.0, TargetPeriod.OneYear, true);
+        var expectedDto = new UserProfileDto(profile.Id, UnitSystem.Metric, Gender.Male, 35, 180.0, 85.0, 75.0, TargetPeriod.OneYear, true, null);
 
         _repositoryMock
             .Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
@@ -66,7 +66,7 @@ public class GetUserProfileQueryHandlerTests
     public async Task Handle_WhenProfileExists_MapperIsCalledExactlyOnce()
     {
         var profile = new UserProfile { UnitSystem = UnitSystem.Imperial };
-        var dto = new UserProfileDto(profile.Id, UnitSystem.Imperial, null, null, null, null, null, null, false);
+        var dto = new UserProfileDto(profile.Id, UnitSystem.Imperial, null, null, null, null, null, null, false, null);
 
         _repositoryMock
             .Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))

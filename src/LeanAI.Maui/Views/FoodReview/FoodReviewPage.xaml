@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    x:Class="LeanAI.Maui.Views.FoodReview.FoodReviewPage"
+    x:DataType="vm:FoodReviewViewModel"
+    BackgroundColor="{StaticResource ColorBase}">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Padding="24,32,24,12" Spacing="4">
+            <Label
+                Text="Food Review"
+                TextColor="{StaticResource ColorText}"
+                FontSize="24"
+                FontAttributes="Bold" />
+            <DatePicker
+                Date="{Binding SelectedDate}"
+                MinimumDate="{Binding MinDate}"
+                MaximumDate="{Binding MaxDate}"
+                Format="d MMM yyyy"
+                TextColor="{StaticResource ColorCopper}"
+                FontSize="20"
+                BackgroundColor="Transparent" />
+        </VerticalStackLayout>
+
+        <!-- Food list -->
+        <CollectionView
+            Grid.Row="1"
+            ItemsSource="{Binding Items}"
+            SelectionMode="None"
+            Margin="24,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:FoodRowViewModel">
+                    <Border
+                        BackgroundColor="#2A2A2A"
+                        StrokeThickness="0"
+                        Padding="0"
+                        Margin="0,0,0,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid
+                            Padding="14,12"
+                            ColumnDefinitions="*,90,80,Auto"
+                            ColumnSpacing="8"
+                            VerticalOptions="Center">
+
+                            <!-- Food name -->
+                            <Entry
+                                Grid.Column="0"
+                                Text="{Binding FoodItem}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                Placeholder="Food item"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                VerticalOptions="Center" />
+
+                            <!-- Quantity -->
+                            <Entry
+                                Grid.Column="1"
+                                Text="{Binding Quantity}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                Placeholder="Qty"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                HorizontalTextAlignment="Center"
+                                VerticalOptions="Center" />
+
+                            <!-- Calories (read-only) -->
+                            <Label
+                                Grid.Column="2"
+                                Text="{Binding CaloriesDisplay}"
+                                TextColor="{StaticResource ColorNickel}"
+                                FontSize="13"
+                                HorizontalTextAlignment="Center"
+                                VerticalOptions="Center" />
+
+                            <!-- Delete row -->
+                            <Button
+                                Grid.Column="3"
+                                Text="✕"
+                                TextColor="{StaticResource ColorNickel}"
+                                BackgroundColor="Transparent"
+                                FontSize="16"
+                                Padding="8,0"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FoodReviewViewModel}}, Path=DeleteItemCommand}"
+                                CommandParameter="{Binding .}"
+                                VerticalOptions="Center" />
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Total calories summary -->
+        <Border
+            Grid.Row="2"
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Margin="24,0,24,8"
+            Padding="14,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,Auto">
+                <Label
+                    Grid.Column="0"
+                    Text="Total"
+                    TextColor="{StaticResource ColorText}"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+                <Label
+                    Grid.Column="1"
+                    Text="{Binding TotalCaloriesText}"
+                    TextColor="{StaticResource ColorCopper}"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Action buttons -->
+        <VerticalStackLayout Grid.Row="3" Padding="24,4,24,32" Spacing="10">
+
+            <!-- Add item -->
+            <Button
+                Text="+ Add Item"
+                TextColor="{StaticResource ColorText}"
+                BackgroundColor="#2A2A2A"
+                FontSize="15"
+                HeightRequest="48"
+                Command="{Binding AddItemCommand}" />
+
+            <!-- Re-evaluate -->
+            <Button
+                Text="Re-evaluate with AI"
+                TextColor="{StaticResource ColorBase}"
+                BackgroundColor="{StaticResource ColorNickel}"
+                FontSize="15"
+                HeightRequest="48"
+                Command="{Binding ReEvaluateCommand}" />
+
+            <!-- Save -->
+            <Button
+                Text="Save"
+                TextColor="{StaticResource ColorBase}"
+                BackgroundColor="{StaticResource ColorCopper}"
+                FontSize="15"
+                FontAttributes="Bold"
+                HeightRequest="52"
+                Command="{Binding SaveCommand}" />
+
+            <!-- Delete all -->
+            <Button
+                Text="Delete All"
+                TextColor="{StaticResource ColorNickel}"
+                BackgroundColor="Transparent"
+                FontSize="14"
+                HeightRequest="44"
+                Command="{Binding DeleteAllCommand}" />
+
+            <!-- Cancel (import mode only) -->
+            <Button
+                Text="Cancel"
+                TextColor="{StaticResource ColorNickel}"
+                BackgroundColor="Transparent"
+                FontSize="14"
+                HeightRequest="44"
+                IsVisible="{Binding IsImportMode}"
+                Command="{Binding CancelCommand}" />
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

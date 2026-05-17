@@ -513,3 +513,107 @@ Allow the user to share a screenshot of a run from any third-party activity trac
 - ✅ `GeminiRunImageAnalysisService` parse logic tested with valid JSON, malformed JSON, empty array, and missing fields.
 - ✅ EF Core migration applies cleanly with no data loss to existing tables.
 - ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → all tests green (140 total).
+
+---
+
+## Phase 9: Food Calorie Import — Share Sheet & Daily Tracking ✅ COMPLETE
+
+### Goal
+Allow the user to share a meal photo from any app into LeanAI via the Android Share Sheet. Gemini Vision analyses the image and returns a list of food items with their individual caloric values. The user reviews and edits the list (food names and quantities), can request a Gemini re-evaluation of calories, and when satisfied saves the food log for a chosen date. Total daily calories are visible on the Daily Log screen via a tappable tile that opens the same edit screen.
+
+---
+
+### Functional Requirements
+
+#### Android Share Sheet Entry Point — "LeanAI: Import Food"
+- The app registers a second Android Activity named **"LeanAI: Import Food"** that appears in the Android Share Sheet whenever an image is shared (`image/*` MIME type).
+- The Activity is a thin proxy: reads the image from the share intent, dispatches `AnalyzeFoodImageCommand` via MediatR, stores the result in the singleton `FoodImportStateService`, and launches the main LeanAI app. All business logic lives in the command handler.
+- A branded loading screen (same LeanAI palette as Phase 8) is displayed while Gemini processes the image.
+- **Success:** LeanAI's main app is brought to the foreground. `LogViewModel.OnAppearing` detects the pending import via `FoodImportStateService` and navigates modally to the Food Review screen.
+- **Failure:** A long Android Toast "Could not analyse the meal — please try again." is shown. The Activity finishes without launching the main app.
+
+#### Food Review Screen
+- Accessible from two entry points: (1) automatic push after share-sheet import; (2) tapping the **Calories Today** tile on the Daily Log screen.
+- **Header:** "Food Review" title followed by an editable `DatePicker`:
+  - Default date: today (import mode) or the date tapped in the Daily Log (edit mode).
+  - **Minimum date:** `UserProfile.GoalStartDate` (loaded via `GetUserProfileQuery`). Falls back to 1 year ago if `GoalStartDate` is null.
+  - **Maximum date:** today (future dates are not allowed).
+  - In **edit mode**, changing the date immediately reloads the food log for the newly selected date.
+  - In **import mode**, changing the date only changes the save target; the Gemini-extracted items stay fixed.
+- Shows a scrollable list where each row displays:
+  - **Food item name** — editable `Entry`.
+  - **Quantity** — editable `Entry` (free text, e.g. "200 g", "1 cup").
+  - **Calories** — read-only label in kcal. Displayed as "—" for newly added rows not yet re-evaluated.
+  - **Delete row** button.
+- **Total calories summary row** — pinned below the food list (outside the scroll area), shows the running sum of all rows' calorie values. Updates automatically as rows are added, deleted, or re-evaluated. Displays "—" when no calories are known.
+- **"Add item"** button — appends a new empty row (name blank, quantity blank, calories "—").
+- **"Re-evaluate with AI"** button — sends the full current list (all names + quantities) to Gemini as a text-only request; calories column and total update in place for all rows.
+- **"Save"** button — persists all rows to the database for the chosen date (full replace), dismisses the screen, and **navigates the Daily Log to that same date** so the user immediately sees the updated Calories Today tile.
+- **"Delete All"** button — deletes all food log entries for the chosen date after a confirmation prompt; Calories Today tile resets to "—".
+- **"Cancel"** button (shown in import mode only) — dismisses the screen without saving anything.
+
+#### Gemini Food Analysis
+- `AnalyzeFoodImageCommand` sends the meal image to Gemini Vision and requests a JSON array:
+  ```json
+  [{ "food_item": "string", "quantity": "string", "calories": number }]
+  ```
+  All three fields are required per item. If the response cannot be parsed or is empty, the service throws `InvalidOperationException`; the Activity shows the failure toast.
+- `RecalculateCaloriesCommand` takes the current list as `IReadOnlyList<FoodItemInputDto>` (name + quantity only) and sends a text-only Gemini request asking for the same JSON format with recalculated calories. Used by the "Re-evaluate with AI" button.
+
+#### Database — `FoodTracking` Bounded Context
+- New **`CaloryLog`** entity (the central calorie ledger):
+  - `Id` (Guid PK), `Date` (DateOnly), `Calories` (double), `SourceType` (string: `"food"` in this phase; extensible to `"activity"` for calorie burn in a future phase).
+- New **`FoodLog`** entity (food item details):
+  - `Id` (Guid PK), `Date` (DateOnly), `FoodItem` (string), `Quantity` (string), `CaloryLogId` (FK → `CaloryLog`, cascade delete).
+- **Relationship:** one `FoodLog` row per food item; each `FoodLog` links to exactly one `CaloryLog` row holding its calorie count. Future activity calorie entries will add their own `CaloryLog` rows without a `FoodLog`.
+- **Save strategy:** `SaveFoodLogCommand` performs a full replace — deletes all `FoodLog` rows for the date (cascades to `CaloryLog`), then inserts fresh rows. This handles both initial save and edits.
+- A new EF Core migration `Add_FoodTracking` adds `CaloryLogs` and `FoodLogs` tables. No existing tables are altered.
+
+#### Daily Log Screen — Calories Today Tile
+- A new full-width tile is added to the **REAL-TIME ANALYSIS** section of the Daily Log screen, positioned between the two-column grid (Yesterday Delta / Weekly Loss) and the existing "Current Average Weekly Weight" card.
+- **Title:** "Calories Today" (Nickel, FontSize 13, character spacing 1).
+- **Value:** total kcal for today, e.g. `"1 847 kcal"`, FontSize 26, Bold, **Copper** colour. Displays "—" in Nickel if no food log exists for today.
+- **Tappable:** navigates modally to the Food Review screen in edit mode for today.
+
+---
+
+### Technical Specifications
+
+| Area | Detail |
+|------|--------|
+| `AnalyzeFoodImageCommand(byte[], string, DateOnly)` | Returns `IReadOnlyList<FoodItemDto>` — no DB write. `ImportFoodActivity` stores the result in `FoodImportStateService` singleton. |
+| `RecalculateCaloriesCommand(IReadOnlyList<FoodItemInputDto>)` | Returns `IReadOnlyList<FoodItemDto>`. Text-only Gemini call (no image required). |
+| `SaveFoodLogCommand(DateOnly, IReadOnlyList<FoodItemDto>)` | Full replace for date: delete existing `FoodLog` rows (cascade deletes `CaloryLog`), then insert new rows using EF Core navigation property so `CaloryLog` is created implicitly. |
+| `DeleteFoodLogForDateCommand(DateOnly)` | Deletes all `FoodLog` rows for date; cascade delete removes linked `CaloryLog` rows. |
+| `GetFoodLogForDateQuery(DateOnly)` | Returns `IReadOnlyList<FoodLogEntryDto>` — eager-loads `CaloryLog` for calorie values. |
+| `GetTotalCaloriesForDateQuery(DateOnly)` | Returns `double` — sums `CaloryLog.Calories` for date (all rows; in Phase 9 all are food intake). |
+| `IFoodImageAnalysisService` | Two methods: `AnalyzeImageAsync(byte[], string, CancellationToken)` → multimodal; `RecalculateCaloriesAsync(IReadOnlyList<FoodItemInputDto>, CancellationToken)` → text-only. |
+| `FoodImportStateService` | Singleton registered in DI. `Set(items)` called by `ImportFoodActivity`; `HasPending` + `Take()` consumed by `LogViewModel.OnAppearing`. Thread-safe via lock. |
+| Import-mode navigation | `ImportFoodActivity` sets `FoodImportStateService` → starts `MainActivity` → `LogViewModel.OnAppearing` detects pending → `Shell.Current.Navigation.PushModalAsync(FoodReviewPage)`. |
+| Edit-mode navigation | Calories Today tile tap → `LogViewModel` command → `Shell.Current.Navigation.PushModalAsync(FoodReviewPage)` with today's date. |
+| `FoodReviewPage` | Registered as a transient page in `MauiProgram.cs`. Pushed modally (same pattern as LogPage from CalendarViewModel). `FoodReviewViewModel` uses `IMediator` and `FoodImportStateService`. |
+| Android Activity | `ImportFoodActivity` extends plain `Activity`. Same fresh-process Gemini key provisioning as Phase 8 (read from SecureStorage key `"gemini_key"`, set on `GeminiKeyHolder` inside `Task.Run`). Loading screen with LeanAI palette. |
+| EF Core FK | `FoodLog` → `CaloryLog` configured with `OnDelete(DeleteBehavior.Cascade)` in `OnModelCreating`. |
+| `GeminiFoodImageAnalysisService` | `internal sealed class`. `ParseResponse` is `internal static` for testability (same pattern as Phase 8). |
+| Date picker | `FoodReviewViewModel` exposes `DateTime SelectedDate`, `DateTime MinDate` (from `GoalStartDate`), `DateTime MaxDate` (today). `OnSelectedDateChanged` partial triggers `LoadFoodForDateAsync` in edit mode only. `UserProfileDto` gained `DateOnly? GoalStartDate`; AutoMapper picks it up by convention. |
+| Total calories | `[ObservableProperty] string TotalCaloriesText`. `RefreshTotal()` sums `Items.Sum(r => r.CaloriesValue)`. Called after load, re-evaluate, and via `Items.CollectionChanged` subscription for add/delete. |
+| Post-save navigation | After `PopModalAsync`, `FoodReviewViewModel.SaveAsync` sends `FoodSavedMessage(DateOnly)` via `WeakReferenceMessenger`. `LogViewModel` implements `IRecipient<FoodSavedMessage>` and calls `LoadCoreAsync(message.Date)` on the main thread, switching the Daily Log to the saved date. |
+
+---
+
+### Definition of Done
+- ✅ Android Share Sheet lists "LeanAI: Import Food" when sharing an image.
+- ✅ Sharing a meal photo shows the loading screen then opens LeanAI with a food list populated from Gemini.
+- ✅ User can edit food names and quantities, delete individual items, and add new empty rows.
+- ✅ "Re-evaluate with AI" updates calorie values for all rows via a Gemini text call.
+- ✅ "Save" stores food entries; Calories Today tile shows updated total.
+- ✅ Food Review screen header shows an editable DatePicker (min: GoalStartDate; max: today). Changing date in edit mode reloads the food log; in import mode it changes the save target only.
+- ✅ Total calories summary row visible below the food list; updates on every add, delete, and re-evaluate.
+- ✅ After Save, Daily Log navigates to the date chosen in the picker.
+- ✅ Tapping "Calories Today" tile opens the food list in edit mode for today.
+- ✅ "Delete All" (with confirmation) removes all food entries; tile resets to "—".
+- ✅ `FoodLog` ↔ `CaloryLog` FK with cascade delete verified end-to-end.
+- ✅ EF Core migration `Add_FoodTracking` applies cleanly — no existing tables altered.
+- ✅ All new command/query handlers tested at 100% branch coverage.
+- ✅ `GeminiFoodImageAnalysisService` parse logic tested (valid, markdown-fenced, empty array, missing fields, malformed JSON).
+- ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → 157 / 157 tests green.

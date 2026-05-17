@@ -1,14 +1,20 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using LeanAI.Application.FoodTracking.Queries.GetTotalCaloriesForDate;
 using LeanAI.Application.WeightManagement.Commands.UpsertDailyLog;
 using LeanAI.Application.WeightManagement.Queries.GetLogContext;
 using LeanAI.Domain.WeightManagement.Enums;
+using LeanAI.Infrastructure.FoodTracking.Services;
+using LeanAI.Maui.Messages;
+using LeanAI.Maui.Views.FoodReview;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LeanAI.Maui.ViewModels;
 
-public partial class LogViewModel : ObservableObject
+public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessage>
 {
     private readonly IMediator _mediator;
 
@@ -40,11 +46,22 @@ public partial class LogViewModel : ObservableObject
     [ObservableProperty] private string   _weekStartDateLabel       = string.Empty;
     [ObservableProperty] private string   _currentWeeklyAverageText = "—";
     [ObservableProperty] private bool     _isWeeklyAverageTrending;
+    [ObservableProperty] private string   _totalCaloriesText        = "—";
+    [ObservableProperty] private bool     _hasCalories;
 
-    public LogViewModel(IMediator mediator)
+    private readonly IServiceProvider      _serviceProvider;
+    private readonly FoodImportStateService _foodImportState;
+
+    public LogViewModel(IMediator mediator, IServiceProvider serviceProvider, FoodImportStateService foodImportState)
     {
-        _mediator = mediator;
+        _mediator        = mediator;
+        _serviceProvider = serviceProvider;
+        _foodImportState = foodImportState;
+        WeakReferenceMessenger.Default.Register(this);
     }
+
+    void IRecipient<FoodSavedMessage>.Receive(FoodSavedMessage message)
+        => MainThread.BeginInvokeOnMainThread(() => _ = LoadCoreAsync(message.Date));
 
     partial void OnWeightDisplayTextChanged(string value)
     {
@@ -72,6 +89,20 @@ public partial class LogViewModel : ObservableObject
         // Guard: if the date was already set via LoadForDateAsync (modal path), skip the tab-flow re-load.
         if (_dateWasExplicitlySet) return;
         await LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
+
+        if (_foodImportState.HasPending)
+            await NavigateToFoodReviewAsync(isImportMode: true);
+    }
+
+    [RelayCommand]
+    private Task OpenFoodReviewAsync()
+        => NavigateToFoodReviewAsync(isImportMode: false);
+
+    private async Task NavigateToFoodReviewAsync(bool isImportMode)
+    {
+        var page = _serviceProvider.GetRequiredService<FoodReviewPage>();
+        await page.ViewModel.InitialiseAsync(EntryDate, isImportMode);
+        await Shell.Current.Navigation.PushModalAsync(page);
     }
 
     private async Task LoadCoreAsync(DateOnly date, CancellationToken ct = default)
@@ -102,6 +133,10 @@ public partial class LogViewModel : ObservableObject
         _isLoading = false;
 
         RecalculateIndicators();
+
+        var totalCal = await _mediator.Send(new GetTotalCaloriesForDateQuery(date), ct);
+        HasCalories       = totalCal > 0;
+        TotalCaloriesText = totalCal > 0 ? $"{totalCal:N0} kcal" : "—";
     }
 
     private void RecalculateIndicators()
