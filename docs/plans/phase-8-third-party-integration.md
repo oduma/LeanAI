@@ -126,12 +126,12 @@ This phase exposes an Android Share Sheet entry point that accepts a run-trackin
     - Class: `public class ImportRunActivity : Activity`
     - Attributes:
       ```csharp
-      [Activity(Label = "LeanAI: Import Run", Exported = true)]
+      [Activity(Label = "Import Run", Exported = true)]
       [IntentFilter(
           new[] { Intent.ActionSend },
           Categories = new[] { Intent.CategoryDefault },
           DataMimeType = "image/*",
-          Label = "LeanAI: Import Run")]
+          Label = "Import Run")]
       ```
     - `OnCreate` logic:
       1. Call `base.OnCreate(savedInstanceState)`
@@ -200,7 +200,7 @@ This phase exposes an Android Share Sheet entry point that accepts a run-trackin
 
 ## Definition of Done Checklist
 
-- [ ] Android Share Sheet lists "LeanAI: Import Run" when sharing an image from another app
+- [ ] Android Share Sheet lists "Import Run" when sharing an image from another app
 - [ ] Valid run screenshot → 3 `ActivityLog` rows in DB (distance, pace, duration)
 - [ ] Today's `DailyActualWeight.Notes` updated with formatted run summary (entry created with `WeightKg=0` if none existed)
 - [ ] Success Toast shown with distance and duration values

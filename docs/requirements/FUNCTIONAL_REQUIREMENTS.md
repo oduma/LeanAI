@@ -415,7 +415,7 @@ Allow the user to share a screenshot of a run from any third-party activity trac
 ### Functional Requirements
 
 #### Android Share Sheet Entry Point
-- The app registers an Android Activity named **"LeanAI: Import Run"** that appears in the Android Share Sheet whenever the user shares an image (`image/*` MIME type).
+- The app registers an Android Activity named **"Import Run"** that appears in the Android Share Sheet whenever the user shares an image (`image/*` MIME type).
 - The Activity is a thin proxy: it reads the image from the share intent, resolves the MediatR mediator from the DI container, and dispatches `ImportRunCommand`. All business logic lives in the command handler.
 - The design is explicitly extensible — future activity types (cycling, swimming) add a new Android Activity with a new label and a new command; no existing code is modified.
 
@@ -488,7 +488,7 @@ Allow the user to share a screenshot of a run from any third-party activity trac
 
 **Presentation — Android (`LeanAI.Maui/Platforms/Android/`)**
 - `ImportRunActivity` extending Android `Activity` (not `MauiAppCompatActivity`).
-- `[IntentFilter]` attribute: `ActionSend`, `CategoryDefault`, `DataMimeType = "image/*"`, `Label = "LeanAI: Import Run"`, `Exported = true`.
+- `[IntentFilter]` attribute: `ActionSend`, `CategoryDefault`, `DataMimeType = "image/*"`, `Label = "Import Run"`, `Exported = true`.
 - On `OnCreate`: reads image URI from `Intent.ExtraStream`, resolves MIME type from `ContentResolver`, reads bytes into `byte[]`, resolves `IMediator` via `IPlatformApplication.Current!.Services`, dispatches `ImportRunCommand` asynchronously via `Task.Run`, shows success or failure Toast via `RunOnUiThread`, calls `Finish()`.
 - **Loading screen:** `SetContentView` is called at the start of `OnCreate` with a programmatic layout showing the LeanAI colour palette (dark background `#222222`, copper spinner `#D28B5C`, nickel label `#9A9EAB`) so the user sees a branded spinner instead of a blank white window during the AI call.
 - **Fresh-process API key provisioning:** When the share-sheet Activity starts in a fresh process (i.e., the MAUI main window has never opened), `App.xaml.cs`'s `ProvisionAiSettingsAsync()` is never called and `GeminiKeyHolder.ApiKey` remains empty. `ImportRunActivity` must therefore read the key from `SecureStorage` (key name `"gemini_key"`) and set it on the singleton `GeminiKeyHolder` inside `Task.Run`, before the mediator send. This mirrors what `App.xaml.cs` does at window creation time.
@@ -504,7 +504,7 @@ Allow the user to share a screenshot of a run from any third-party activity trac
 ---
 
 ### Definition of Done
-- ✅ Android Share Sheet lists "LeanAI: Import Run" when sharing any image from another app.
+- ✅ Android Share Sheet lists "Import Run" when sharing any image from another app.
 - ✅ Sharing a valid run screenshot extracts distance, pace, and duration from Gemini and stores 3 `ActivityLog` rows in the DB.
 - ✅ Today's `DailyActualWeight.Notes` is updated with the run summary (entry created with `WeightKg = 0` if none existed).
 - ✅ Success Toast confirms the imported metrics.
@@ -525,8 +525,8 @@ Allow the user to share a meal photo from any app into LeanAI via the Android Sh
 
 ### Functional Requirements
 
-#### Android Share Sheet Entry Point — "LeanAI: Import Food"
-- The app registers a second Android Activity named **"LeanAI: Import Food"** that appears in the Android Share Sheet whenever an image is shared (`image/*` MIME type).
+#### Android Share Sheet Entry Point — "Import Food"
+- The app registers a second Android Activity named **"Import Food"** that appears in the Android Share Sheet whenever an image is shared (`image/*` MIME type).
 - The Activity is a thin proxy: reads the image from the share intent, dispatches `AnalyzeFoodImageCommand` via MediatR, stores the result in the singleton `FoodImportStateService`, and launches the main LeanAI app. All business logic lives in the command handler.
 - A branded loading screen (same LeanAI palette as Phase 8) is displayed while Gemini processes the image.
 - **Success:** LeanAI's main app is brought to the foreground. `LogViewModel.OnAppearing` detects the pending import via `FoodImportStateService` and navigates modally to the Food Review screen.
@@ -602,7 +602,7 @@ Allow the user to share a meal photo from any app into LeanAI via the Android Sh
 ---
 
 ### Definition of Done
-- ✅ Android Share Sheet lists "LeanAI: Import Food" when sharing an image.
+- ✅ Android Share Sheet lists "Import Food" when sharing an image.
 - ✅ Sharing a meal photo shows the loading screen then opens LeanAI with a food list populated from Gemini.
 - ✅ User can edit food names and quantities, delete individual items, and add new empty rows.
 - ✅ "Re-evaluate with AI" updates calorie values for all rows via a Gemini text call.
@@ -617,3 +617,31 @@ Allow the user to share a meal photo from any app into LeanAI via the Android Sh
 - ✅ All new command/query handlers tested at 100% branch coverage.
 - ✅ `GeminiFoodImageAnalysisService` parse logic tested (valid, markdown-fenced, empty array, missing fields, malformed JSON).
 - ✅ `dotnet build` → 0 errors, 0 warnings. `dotnet test` → 157 / 157 tests green.
+
+---
+
+## Post-Phase Changes ✅ COMPLETE
+
+### Share Sheet Entry Point Label Rename
+- Removed the `"LeanAI: "` prefix from both Android Share Sheet labels.
+  - `"LeanAI: Import Run"` → `"Import Run"`
+  - `"LeanAI: Import Food"` → `"Import Food"`
+- Changed in: `[Activity(Label = ...)]` and `[IntentFilter(..., Label = ...)]` attributes on `ImportRunActivity` and `ImportFoodActivity`.
+
+---
+
+## Open Issues
+
+### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED
+
+**Issue:** On Android 13+ (e.g., Pixel 10) with "Themed icons" enabled, the LeanAI launcher icon renders as a white rounded square instead of a tinted silhouette of the weight-scale icon.
+
+**Root cause:** Without a `<monochrome>` element in the adaptive icon XML, Android falls back to a white disc/square.
+
+**Attempted fix (2026-05-17–18):**
+- Added `Platforms/Android/Resources/mipmap-anydpi-v33/leanai_icon.xml` — adaptive icon XML for Android 13+ with `<background>`, `<foreground>`, and `<monochrome>` elements.
+- Added `Platforms/Android/Resources/drawable/leanai_icon_monochrome.xml` — Android `VectorDrawable` silhouette of the scale (outer rounded-rect frame via `fillType="evenOdd"` + circle for the display).
+- Added `ic_launcher_background` (`#222222`) to `colors.xml`.
+- Deleted `Resources/AppIcon/leanai_icon_foreground.svg` (had been inadvertently auto-detected by MAUI's resizetizer, overriding the copper foreground PNG with a white silhouette).
+
+**Current status:** Icon still renders as white rounded square in both colour and monochrome modes. Root cause not yet fully identified. **Deferred — to be revisited.**

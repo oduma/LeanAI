@@ -8,7 +8,10 @@
       "Bash(Copy-Item \"C:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\icontoolkit\\\\android\\\\play_store_512.png\" -Destination \"C:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Resources\\\\AppIcon\\\\leanai_icon.png\" -Force)",
       "PowerShell(Copy-Item \"C:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\icontoolkit\\\\android\\\\play_store_512.png\" -Destination \"C:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Resources\\\\AppIcon\\\\leanai_icon.png\" -Force)",
       "Skill(claude-api)",
-      "Skill(claude-api:*)"
+      "Skill(claude-api:*)",
+      "Bash(Get-ChildItem \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\" -Recurse)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\\\\mipmap-anydpi-v33\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\\\\drawable\" -Force)"
     ],
     "additionalDirectories": [
       "c:\\Users\\scien\\.claude\\projects\\c--Code-LeanAI\\memory"

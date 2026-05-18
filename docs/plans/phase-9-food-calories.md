@@ -2,7 +2,7 @@
 
 ## Overview
 
-This phase adds a second Android Share Sheet entry point ("LeanAI: Import Food") that accepts a meal photo, sends it to Gemini Vision for food-item extraction, and presents the result in an interactive Food Review screen where the user can edit names/quantities, request a Gemini calorie re-evaluation, and save. Total daily calories appear on the Daily Log screen in a new tappable tile.
+This phase adds a second Android Share Sheet entry point ("Import Food") that accepts a meal photo, sends it to Gemini Vision for food-item extraction, and presents the result in an interactive Food Review screen where the user can edit names/quantities, request a Gemini calorie re-evaluation, and save. Total daily calories appear on the Daily Log screen in a new tappable tile.
 
 ---
 
@@ -267,12 +267,12 @@ This phase adds a second Android Share Sheet entry point ("LeanAI: Import Food")
     - Class: `public class ImportFoodActivity : Activity`
     - Attributes:
       ```csharp
-      [Activity(Label = "LeanAI: Import Food", Exported = true)]
+      [Activity(Label = "Import Food", Exported = true)]
       [IntentFilter(
           new[] { global::Android.Content.Intent.ActionSend },
           Categories = new[] { global::Android.Content.Intent.CategoryDefault },
           DataMimeType = "image/*",
-          Label = "LeanAI: Import Food")]
+          Label = "Import Food")]
       ```
     - `OnCreate` logic:
       1. `base.OnCreate(savedInstanceState)`
@@ -457,7 +457,7 @@ Three additional requirements were clarified after plan approval:
 
 ## Definition of Done Checklist
 
-- ✅ Android Share Sheet lists "LeanAI: Import Food" when sharing an image from another app
+- ✅ Android Share Sheet lists "Import Food" when sharing an image from another app
 - ✅ Sharing a meal photo shows the branded loading screen then opens LeanAI's Food Review screen with items from Gemini
 - ✅ Each row shows food name (editable), quantity (editable), calories (read-only)
 - ✅ Delete row button removes the row from the list

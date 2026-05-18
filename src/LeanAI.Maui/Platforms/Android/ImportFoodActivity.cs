@@ -10,12 +10,12 @@ using Microsoft.Maui;
 
 namespace LeanAI.Maui.Platforms.Android;
 
-[Activity(Label = "LeanAI: Import Food", Exported = true)]
+[Activity(Label = "Import Food", Exported = true)]
 [IntentFilter(
     new[] { global::Android.Content.Intent.ActionSend },
     Categories = new[] { global::Android.Content.Intent.CategoryDefault },
     DataMimeType = "image/*",
-    Label = "LeanAI: Import Food")]
+    Label = "Import Food")]
 public class ImportFoodActivity : Activity
 {
     private const string GeminiKeyStorageKey = "gemini_key";

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Monochrome silhouette of the LeanAI weight-scale icon.
+  viewportWidth/Height match the 512×512 source PNG coordinate space.
+  android:fillType="evenOdd" punches the inner rect out of the outer frame.
+  Requires API 24+; this file lives in mipmap-anydpi-v33 so that is guaranteed.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!--
+      Scale body frame:
+        Outer rounded-rect: x=102 y=106 w=308 h=306 rx=44
+        Inner rounded-rect: x=140 y=180 w=232 h=216 rx=20
+      evenOdd rule makes the inner rect a transparent hole.
+    -->
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="
+            M 146,106 H 366 A 44,44 0 0,1 410,150 V 368 A 44,44 0 0,1 366,412 H 146 A 44,44 0 0,1 102,368 V 150 A 44,44 0 0,1 146,106 Z
+            M 160,180 H 352 A 20,20 0 0,1 372,200 V 376 A 20,20 0 0,1 352,396 H 160 A 20,20 0 0,1 140,376 V 200 A 20,20 0 0,1 160,180 Z" />
+
+    <!-- Scale display circle: centre (256,162) radius 62, drawn as two clockwise semicircles -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 194,162 A 62,62 0 0,1 318,162 A 62,62 0 0,1 194,162 Z" />
+
+</vector>

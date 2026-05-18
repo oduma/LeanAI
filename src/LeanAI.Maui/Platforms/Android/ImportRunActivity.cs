@@ -9,12 +9,12 @@ using Microsoft.Maui;
 
 namespace LeanAI.Maui.Platforms.Android;
 
-[Activity(Label = "LeanAI: Import Run", Exported = true)]
+[Activity(Label = "Import Run", Exported = true)]
 [IntentFilter(
     new[] { global::Android.Content.Intent.ActionSend },
     Categories = new[] { global::Android.Content.Intent.CategoryDefault },
     DataMimeType = "image/*",
-    Label = "LeanAI: Import Run")]
+    Label = "Import Run")]
 public class ImportRunActivity : Activity
 {
     private const string GeminiKeyStorageKey = "gemini_key";
