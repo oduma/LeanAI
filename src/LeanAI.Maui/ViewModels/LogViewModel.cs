@@ -6,15 +6,18 @@ using LeanAI.Application.FoodTracking.Queries.GetTotalCaloriesForDate;
 using LeanAI.Application.WeightManagement.Commands.UpsertDailyLog;
 using LeanAI.Application.WeightManagement.Queries.GetLogContext;
 using LeanAI.Domain.WeightManagement.Enums;
+using LeanAI.Infrastructure.ActivityTracking.Services;
 using LeanAI.Infrastructure.FoodTracking.Services;
 using LeanAI.Maui.Messages;
+using LeanAI.Maui.Views.CaloriesDetail;
 using LeanAI.Maui.Views.FoodReview;
+using LeanAI.Maui.Views.RunReview;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LeanAI.Maui.ViewModels;
 
-public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessage>
+public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessage>, IRecipient<RunSavedMessage>
 {
     private readonly IMediator _mediator;
 
@@ -49,18 +52,28 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
     [ObservableProperty] private string   _totalCaloriesText        = "—";
     [ObservableProperty] private bool     _hasCalories;
 
-    private readonly IServiceProvider      _serviceProvider;
+    private readonly IServiceProvider       _serviceProvider;
     private readonly FoodImportStateService _foodImportState;
+    private readonly RunImportStateService  _runImportState;
 
-    public LogViewModel(IMediator mediator, IServiceProvider serviceProvider, FoodImportStateService foodImportState)
+    public LogViewModel(
+        IMediator            mediator,
+        IServiceProvider     serviceProvider,
+        FoodImportStateService foodImportState,
+        RunImportStateService  runImportState)
     {
         _mediator        = mediator;
         _serviceProvider = serviceProvider;
         _foodImportState = foodImportState;
-        WeakReferenceMessenger.Default.Register(this);
+        _runImportState  = runImportState;
+        WeakReferenceMessenger.Default.Register<FoodSavedMessage>(this);
+        WeakReferenceMessenger.Default.Register<RunSavedMessage>(this);
     }
 
     void IRecipient<FoodSavedMessage>.Receive(FoodSavedMessage message)
+        => MainThread.BeginInvokeOnMainThread(() => _ = LoadCoreAsync(message.Date));
+
+    void IRecipient<RunSavedMessage>.Receive(RunSavedMessage message)
         => MainThread.BeginInvokeOnMainThread(() => _ = LoadCoreAsync(message.Date));
 
     partial void OnWeightDisplayTextChanged(string value)
@@ -92,15 +105,29 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
 
         if (_foodImportState.HasPending)
             await NavigateToFoodReviewAsync(isImportMode: true);
+
+        if (_runImportState.HasPending)
+            await NavigateToRunReviewAsync(isImportMode: true);
     }
 
     [RelayCommand]
-    private Task OpenFoodReviewAsync()
-        => NavigateToFoodReviewAsync(isImportMode: false);
+    private async Task OpenCaloriesDetailAsync()
+    {
+        var page = _serviceProvider.GetRequiredService<CaloriesDetailPage>();
+        await page.ViewModel.InitialiseAsync(EntryDate);
+        await Shell.Current.Navigation.PushModalAsync(page);
+    }
 
     private async Task NavigateToFoodReviewAsync(bool isImportMode)
     {
         var page = _serviceProvider.GetRequiredService<FoodReviewPage>();
+        await page.ViewModel.InitialiseAsync(EntryDate, isImportMode);
+        await Shell.Current.Navigation.PushModalAsync(page);
+    }
+
+    private async Task NavigateToRunReviewAsync(bool isImportMode)
+    {
+        var page = _serviceProvider.GetRequiredService<RunReviewPage>();
         await page.ViewModel.InitialiseAsync(EntryDate, isImportMode);
         await Shell.Current.Navigation.PushModalAsync(page);
     }
@@ -135,8 +162,8 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
         RecalculateIndicators();
 
         var totalCal = await _mediator.Send(new GetTotalCaloriesForDateQuery(date), ct);
-        HasCalories       = totalCal > 0;
-        TotalCaloriesText = totalCal > 0 ? $"{totalCal:N0} kcal" : "—";
+        HasCalories       = totalCal != 0;
+        TotalCaloriesText = totalCal != 0 ? $"{totalCal:N0} kcal" : "—";
     }
 
     private void RecalculateIndicators()

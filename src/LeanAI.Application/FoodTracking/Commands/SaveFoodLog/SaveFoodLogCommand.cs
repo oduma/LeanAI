@@ -3,4 +3,4 @@ using MediatR;
 
 namespace LeanAI.Application.FoodTracking.Commands.SaveFoodLog;
 
-public sealed record SaveFoodLogCommand(DateOnly Date, IReadOnlyList<FoodItemDto> Items) : IRequest;
+public sealed record SaveFoodLogCommand(DateOnly Date, IReadOnlyList<FoodItemDto> Items, bool IsImportMode) : IRequest;

@@ -630,6 +630,95 @@ Allow the user to share a meal photo from any app into LeanAI via the Android Sh
 
 ---
 
+---
+
+## Phase 10: Import Runs Improvements ✅ COMPLETE
+
+### Goal
+
+Enhance the run-import flow with a review screen (mirroring the food-review screen), activity calorie tracking, and a new Calories Detail screen accessible from the Daily Log tile.
+
+### Functional Requirements
+
+- **Gemini enhancement:** Run image analysis also extracts `calories_burned` (optional 4th metric). Required parameters remain `distance`, `pace`, `duration`; `calories_burned` is returned if shown on the screenshot.
+- **Run Review Screen:** After sharing a run screenshot, a review screen appears instead of a direct save. The screen has:
+  - A date picker at the top (min = `GoalStartDate`, max = today).
+  - A list with two columns: col 1 = activity text (editable), col 2 = calories burned (read-only, AI-only).
+  - The original run row has its delete button hidden; custom manually-added rows can be deleted.
+  - **Re-evaluate** button — sends all col-1 descriptions to Gemini and updates the calories column.
+  - **Total Burned** row at the bottom.
+  - Save, Delete All, Cancel buttons.
+- **Save behavior:** On Save:
+  - For the original run row: appends commentary to `DailyActualWeight.Notes` and saves run metrics (`distance`, `pace`, `duration`, `calories_burned`) to `ActivityLog`.
+  - For all rows: saves a `CaloryLog` entry (`SourceType = "activity"`, `Calories`, `Description`).
+  - For custom (manually-added) rows: also saves a `CustomActivityLog` entry linked by FK to `CaloryLog`.
+- **Custom activity log:** New `CustomActivityLog` table: `Date`, `Description`, `CaloryLogId` FK → `CaloryLogs` (CASCADE delete).
+- **Net calories:** The Calories tile on the Daily Log screen shows net calories = food − activity.
+- **Calories Detail Screen:** Tapping the Calories tile navigates to a new detail screen showing:
+  1. Food items list + Food Total.
+  2. Activity items list + Activity Burned total (calories shown as `−N kcal`).
+  3. Net Calories grand total.
+  - "Edit" buttons in both sections navigate to Food Review / Run Review in edit mode.
+- **Edit mode for Run Review:** Loading from DB (`CaloryLog` with `SourceType = "activity"` for the date). On Save in edit mode: delete-then-insert all activity `CaloryLog` rows for the date (no `Notes` append, no `ActivityLog` save).
+
+### New Application Commands / Queries
+
+| Command / Query | Description |
+|---|---|
+| `AnalyzeRunImageCommand(byte[], string)` | Calls Gemini image analysis, returns `RunImportResultDto` — no persistence. |
+| `EstimateActivityCaloriesCommand(IReadOnlyList<string>)` | Sends text descriptions to Gemini; returns `IReadOnlyList<double>` calorie estimates. |
+| `SaveRunActivitiesCommand(DateOnly, IReadOnlyList<RunActivityRowDto>, bool IsImportMode)` | Delete-then-insert activity `CaloryLog`; conditionally saves `ActivityLog` + Notes comment (import mode, run rows only); saves `CustomActivityLog` for custom rows. |
+| `GetActivityCaloriesForDateQuery(DateOnly)` | Returns `IReadOnlyList<ActivityCaloryLogDto>` for the Calories Detail screen and Run Review edit mode. |
+
+### New Infrastructure Services
+
+| Service | Description |
+|---|---|
+| `GeminiActivityCaloriesEstimationService` | Implements `IActivityCaloriesEstimationService`; text-only Gemini call returning JSON array of calorie estimates. |
+| `RunImportStateService` | Singleton (thread-safe). Stores pending `IReadOnlyList<RunActivityRowDto>` between `ImportRunActivity` and `RunReviewPage`. |
+
+### New Domain Entities / Updates
+
+| Change | Description |
+|---|---|
+| `CustomActivityLog` | New entity: `Date`, `Description`, `CaloryLogId` FK with `OnDelete(Cascade)`. |
+| `CaloryLog.Description` | New nullable string column. |
+| `ICaloryLogRepository` | New methods: `AddActivityAsync`, `DeleteActivityCaloriesForDateAsync`, `GetActivityCaloriesForDateAsync`. Updated `GetTotalCaloriesAsync` returns net (food − activity). |
+
+### EF Core Migration
+
+`Add_CustomActivityLogAndCaloryLogDescription` — adds `Description` column to `CaloryLogs`, new `CustomActivityLogs` table.
+
+### Corrections & Clarifications (implemented during Phase 10 bugfix cycle)
+
+- **Import mode is additive for both food and runs.** `SaveFoodLogCommand(IsImportMode: true)` skips `DeleteByDateAsync` — each import appends new food entries alongside existing ones for the date. `SaveRunActivitiesCommand(IsImportMode: false)` performs the delete-then-insert; import mode adds new activity `CaloryLog` rows without removing previously saved entries (manual or prior imports).
+- **All activity descriptions are appended to daily notes**, not just the imported run row. After saving, every row's `ActivityText` is joined with newlines and dispatched as one `AppendActivityCommentCommand` block regardless of whether the row is a run or a custom activity.
+- **Net calories are computed on-the-fly, not stored.** `GetTotalCaloriesAsync` always queries live data: food calories are summed by joining through `FoodLogs` (so orphaned `CaloryLog` rows from partial deletes are never included), and activity calories are summed from `CaloryLog` where `SourceType = "activity"`. The result (food − activity) can be negative.
+- **`FoodLogRepository.DeleteByDateAsync` removes both `FoodLog` and linked `CaloryLog` rows** in the same `SaveChanges` call, preventing orphaned `CaloryLog` entries that would inflate subsequent calorie totals.
+- **Calories tile activates when net ≠ 0** (not only when net > 0), so the tile is visible on activity-only days where net calories are negative.
+- **`AppendActivityCommentCommand` entries (WeightKg = 0)** are excluded from `GetLogContextQueryHandler` weekly averages and `TodayWeightKg` — only rows where `WeightKg > 0` count as recorded weight entries.
+- **`RunImportStateService` and `FoodImportStateService` use static `_lock`/`_pending` fields** so that pending import state survives Android process cold-starts where the DI container is recreated before `MainActivity` opens.
+- **`App.NavigateToLogIfNoEntryTodayAsync` is guarded** — navigation to `//Log` is skipped when a modal page (RunReviewPage or FoodReviewPage) is already open, preventing the `InvalidOperationException: Modal Stack is Empty` crash on cold-start share-sheet imports.
+
+### Definition of Done
+
+- ✅ Gemini run analysis returns `calories_burned` (optional).
+- ✅ `ImportRunActivity` stores import state and launches `MainActivity` — no toast, no direct save.
+- ✅ Run Review screen appears after share-sheet import.
+- ✅ Re-evaluate sends text descriptions to Gemini and updates calories column.
+- ✅ Manual activity rows can be added, edited, deleted.
+- ✅ Save persists to `CaloryLog` (activity) + `CustomActivityLog` (custom rows) + `ActivityLog` + `Notes` (all activity rows, run and custom).
+- ✅ Import mode adds entries without removing previously saved food or activity data.
+- ✅ Daily Log tile shows net calories (food − activity), computed on-the-fly via live DB query.
+- ✅ Calories tile is visible even when net calories are negative (activity-only day).
+- ✅ Calories tile navigates to Calories Detail screen.
+- ✅ Calories Detail shows food section, activity section, and net grand total; food section total matches the tile.
+- ✅ Edit mode for both sections accessible from Calories Detail.
+- ✅ `dotnet build` → 0 errors, pre-existing warnings only (SkiaSharp XA0141, MVVMTK0034).
+- ✅ 178 / 178 tests passing.
+
+---
+
 ## Open Issues
 
 ### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED

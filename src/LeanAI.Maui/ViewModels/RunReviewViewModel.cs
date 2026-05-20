@@ -3,20 +3,19 @@ using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using LeanAI.Application.FoodTracking.Commands.DeleteFoodLog;
-using LeanAI.Application.FoodTracking.Commands.RecalculateCalories;
-using LeanAI.Application.FoodTracking.Commands.SaveFoodLog;
-using LeanAI.Application.FoodTracking.DTOs;
-using LeanAI.Application.FoodTracking.Queries.GetFoodLogForDate;
+using LeanAI.Application.ActivityTracking.Commands.EstimateActivityCalories;
+using LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
+using LeanAI.Application.ActivityTracking.DTOs;
+using LeanAI.Application.FoodTracking.Queries.GetActivityCaloriesForDate;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
-using LeanAI.Infrastructure.FoodTracking.Services;
+using LeanAI.Infrastructure.ActivityTracking.Services;
 using LeanAI.Maui.Messages;
 using MediatR;
 using Microsoft.Maui.Controls;
 
 namespace LeanAI.Maui.ViewModels;
 
-public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateService foodImportState)
+public partial class RunReviewViewModel(IMediator mediator, RunImportStateService runImportState)
     : ObservableObject
 {
     [ObservableProperty] private DateTime _selectedDate;
@@ -26,7 +25,7 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
     [ObservableProperty] private bool     _isBusy;
     [ObservableProperty] private string   _totalCaloriesText = "—";
 
-    public ObservableCollection<FoodRowViewModel> Items { get; } = new();
+    public ObservableCollection<RunRowViewModel> Items { get; } = new();
 
     public async Task InitialiseAsync(DateOnly date, bool isImportMode)
     {
@@ -36,10 +35,9 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
         IsImportMode = isImportMode;
         MaxDate      = DateTime.Today;
 
-        var profile  = await mediator.Send(new GetUserProfileQuery());
-        MinDate      = profile?.GoalStartDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today.AddYears(-1);
+        var profile = await mediator.Send(new GetUserProfileQuery());
+        MinDate     = profile?.GoalStartDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today.AddYears(-1);
 
-        // Set date without triggering reload (items are about to be loaded below)
         _selectedDate = date.ToDateTime(TimeOnly.MinValue);
         OnPropertyChanged(nameof(SelectedDate));
 
@@ -47,14 +45,17 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
 
         if (isImportMode)
         {
-            var pending = foodImportState.Take();
+            var pending = runImportState.Take();
             if (pending is not null)
-                foreach (var item in pending)
-                    Items.Add(ToRow(item));
+                foreach (var row in pending)
+                    Items.Add(ToRowViewModel(row));
+
+            if (Items.Any(r => r.CaloriesValue == 0))
+                await ReEvaluateAsync();
         }
         else
         {
-            await LoadFoodForDateAsync(date);
+            await LoadActivityCaloriesAsync(date);
         }
 
         RefreshTotal();
@@ -63,16 +64,17 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
     partial void OnSelectedDateChanged(DateTime value)
     {
         if (IsImportMode) return;
-        _ = LoadFoodForDateAsync(DateOnly.FromDateTime(value));
+        _ = LoadActivityCaloriesAsync(DateOnly.FromDateTime(value));
     }
 
-    private async Task LoadFoodForDateAsync(DateOnly date)
+    private async Task LoadActivityCaloriesAsync(DateOnly date)
     {
         Items.Clear();
-        var entries = await mediator.Send(new GetFoodLogForDateQuery(date));
+        var entries = await mediator.Send(new GetActivityCaloriesForDateQuery(date));
         foreach (var entry in entries)
         {
-            var row = new FoodRowViewModel { FoodItem = entry.FoodItem, Quantity = entry.Quantity };
+            var row = new RunRowViewModel { IsRunRow = false };
+            row.ActivityText = entry.Description ?? string.Empty;
             row.UpdateCalories(entry.Calories);
             Items.Add(row);
         }
@@ -90,10 +92,10 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
 
     [RelayCommand]
     private void AddItem()
-        => Items.Add(new FoodRowViewModel());
+        => Items.Add(new RunRowViewModel { IsRunRow = false });
 
     [RelayCommand]
-    private void DeleteItem(FoodRowViewModel row)
+    private void DeleteItem(RunRowViewModel row)
         => Items.Remove(row);
 
     [RelayCommand]
@@ -103,14 +105,13 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
         IsBusy = true;
         try
         {
-            var inputs = Items
-                .Select(r => new FoodItemInputDto(r.FoodItem, r.Quantity))
-                .ToList();
+            var descriptions = Items.Select(r => r.ActivityText).ToList();
+            if (descriptions.Count == 0) return;
 
-            var updated = await mediator.Send(new RecalculateCaloriesCommand(inputs));
+            var estimates = await mediator.Send(new EstimateActivityCaloriesCommand(descriptions));
 
-            for (var i = 0; i < Math.Min(Items.Count, updated.Count); i++)
-                Items[i].UpdateCalories(updated[i].Calories);
+            for (var i = 0; i < Math.Min(Items.Count, estimates.Count); i++)
+                Items[i].UpdateCalories(estimates[i]);
 
             RefreshTotal();
         }
@@ -128,13 +129,17 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
         try
         {
             var targetDate = DateOnly.FromDateTime(SelectedDate);
-            var dtos = Items
-                .Select(r => new FoodItemDto(r.FoodItem, r.Quantity, r.CaloriesValue))
+            var rows = Items
+                .Select(r => new RunActivityRowDto(
+                    r.ActivityText,
+                    r.CaloriesValue,
+                    r.IsRunRow,
+                    r.Metrics))
                 .ToList();
 
-            await mediator.Send(new SaveFoodLogCommand(targetDate, dtos, IsImportMode));
+            await mediator.Send(new SaveRunActivitiesCommand(targetDate, rows, IsImportMode));
             await Shell.Current.Navigation.PopModalAsync();
-            WeakReferenceMessenger.Default.Send(new FoodSavedMessage(targetDate));
+            WeakReferenceMessenger.Default.Send(new RunSavedMessage(targetDate));
         }
         finally
         {
@@ -147,13 +152,13 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
     {
         var confirmed = await Shell.Current.DisplayAlertAsync(
             "Delete All",
-            "Remove all food entries for this day?",
+            "Remove all activity entries for this day?",
             "Delete", "Cancel");
 
         if (!confirmed) return;
 
         var targetDate = DateOnly.FromDateTime(SelectedDate);
-        await mediator.Send(new DeleteFoodLogForDateCommand(targetDate));
+        await mediator.Send(new SaveRunActivitiesCommand(targetDate, [], IsImportMode: false));
         Items.Clear();
         await Shell.Current.Navigation.PopModalAsync();
     }
@@ -162,13 +167,14 @@ public partial class FoodReviewViewModel(IMediator mediator, FoodImportStateServ
     private Task CancelAsync()
         => Shell.Current.Navigation.PopModalAsync();
 
-    private static FoodRowViewModel ToRow(FoodItemDto dto)
+    private static RunRowViewModel ToRowViewModel(RunActivityRowDto dto)
     {
-        var row = new FoodRowViewModel
+        var row = new RunRowViewModel
         {
-            FoodItem = dto.FoodItem,
-            Quantity = dto.Quantity
+            IsRunRow = dto.IsRunRow,
+            Metrics  = dto.Metrics
         };
+        row.ActivityText = dto.ActivityText;
         row.UpdateCalories(dto.Calories);
         return row;
     }

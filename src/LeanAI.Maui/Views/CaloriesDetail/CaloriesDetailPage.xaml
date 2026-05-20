@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    xmlns:dto="clr-namespace:LeanAI.Application.FoodTracking.DTOs;assembly=LeanAI.Application"
+    x:Class="LeanAI.Maui.Views.CaloriesDetail.CaloriesDetailPage"
+    x:DataType="vm:CaloriesDetailViewModel"
+    BackgroundColor="{StaticResource ColorBase}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid
+            Grid.Row="0"
+            Padding="24,32,24,12"
+            ColumnDefinitions="*,Auto">
+            <Label
+                Grid.Column="0"
+                Text="Calories Detail"
+                TextColor="{StaticResource ColorText}"
+                FontSize="24"
+                FontAttributes="Bold"
+                VerticalOptions="Center" />
+            <Button
+                Grid.Column="1"
+                Text="✕"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="20"
+                Padding="8,0"
+                Command="{Binding CloseCommand}"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Scrollable content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="24,0" Spacing="16">
+
+                <!-- Food section header -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                    <Label
+                        Grid.Column="0"
+                        Text="Food"
+                        TextColor="{StaticResource ColorText}"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        VerticalOptions="Center" />
+                    <Button
+                        Grid.Column="1"
+                        Text="Edit"
+                        BackgroundColor="#2A2A2A"
+                        TextColor="{StaticResource ColorCopper}"
+                        CornerRadius="8"
+                        FontSize="14"
+                        Padding="14,6"
+                        Command="{Binding EditFoodCommand}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!-- Food items list -->
+                <CollectionView
+                    ItemsSource="{Binding FoodItems}"
+                    SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dto:FoodLogEntryDto">
+                            <Border
+                                BackgroundColor="#2A2A2A"
+                                StrokeThickness="0"
+                                Padding="0"
+                                Margin="0,0,0,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Grid Padding="14,10" ColumnDefinitions="*,Auto">
+                                    <Label
+                                        Grid.Column="0"
+                                        Text="{Binding FoodItem}"
+                                        TextColor="{StaticResource ColorText}"
+                                        FontSize="15"
+                                        VerticalOptions="Center" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding Calories, StringFormat='{0:N0} kcal'}"
+                                        TextColor="{StaticResource ColorNickel}"
+                                        FontSize="13"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Food total -->
+                <Border
+                    BackgroundColor="#2A2A2A"
+                    StrokeThickness="0"
+                    Padding="14,10">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            Grid.Column="0"
+                            Text="Food Total"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding FoodTotalText}"
+                            TextColor="{StaticResource ColorCopper}"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Activities section header -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                    <Label
+                        Grid.Column="0"
+                        Text="Activities"
+                        TextColor="{StaticResource ColorText}"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        VerticalOptions="Center" />
+                    <Button
+                        Grid.Column="1"
+                        Text="Edit"
+                        BackgroundColor="#2A2A2A"
+                        TextColor="{StaticResource ColorCopper}"
+                        CornerRadius="8"
+                        FontSize="14"
+                        Padding="14,6"
+                        Command="{Binding EditActivitiesCommand}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!-- Activity items list -->
+                <CollectionView
+                    ItemsSource="{Binding ActivityItems}"
+                    SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dto:ActivityCaloryLogDto">
+                            <Border
+                                BackgroundColor="#2A2A2A"
+                                StrokeThickness="0"
+                                Padding="0"
+                                Margin="0,0,0,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Grid Padding="14,10" ColumnDefinitions="*,Auto">
+                                    <Label
+                                        Grid.Column="0"
+                                        Text="{Binding Description}"
+                                        TextColor="{StaticResource ColorText}"
+                                        FontSize="15"
+                                        VerticalOptions="Center" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding Calories, StringFormat='-{0:N0} kcal'}"
+                                        TextColor="{StaticResource ColorNickel}"
+                                        FontSize="13"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Activity total -->
+                <Border
+                    BackgroundColor="#2A2A2A"
+                    StrokeThickness="0"
+                    Padding="14,10">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            Grid.Column="0"
+                            Text="Activity Burned"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding ActivityTotalText}"
+                            TextColor="{StaticResource ColorCopper}"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Net total at bottom -->
+        <Border
+            Grid.Row="2"
+            BackgroundColor="#1A1A1A"
+            StrokeThickness="0"
+            Margin="24,0,24,32"
+            Padding="20,16">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,Auto">
+                <Label
+                    Grid.Column="0"
+                    Text="Net Calories"
+                    TextColor="{StaticResource ColorText}"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+                <Label
+                    Grid.Column="1"
+                    Text="{Binding NetCaloriesText}"
+                    TextColor="{StaticResource ColorCopper}"
+                    FontSize="20"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
+    </Grid>
+</ContentPage>

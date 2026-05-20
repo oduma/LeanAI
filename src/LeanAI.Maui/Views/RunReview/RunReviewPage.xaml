@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    x:Class="LeanAI.Maui.Views.RunReview.RunReviewPage"
+    x:DataType="vm:RunReviewViewModel"
+    BackgroundColor="{StaticResource ColorBase}">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Padding="24,32,24,12" Spacing="4">
+            <Label
+                Text="Run Review"
+                TextColor="{StaticResource ColorText}"
+                FontSize="24"
+                FontAttributes="Bold" />
+            <DatePicker
+                Date="{Binding SelectedDate}"
+                MinimumDate="{Binding MinDate}"
+                MaximumDate="{Binding MaxDate}"
+                Format="d MMM yyyy"
+                TextColor="{StaticResource ColorCopper}"
+                FontSize="20"
+                BackgroundColor="Transparent" />
+        </VerticalStackLayout>
+
+        <!-- Activity list -->
+        <CollectionView
+            Grid.Row="1"
+            ItemsSource="{Binding Items}"
+            SelectionMode="None"
+            Margin="24,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:RunRowViewModel">
+                    <Border
+                        BackgroundColor="#2A2A2A"
+                        StrokeThickness="0"
+                        Padding="0"
+                        Margin="0,0,0,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Grid
+                            Padding="14,12"
+                            ColumnDefinitions="*,100,Auto"
+                            ColumnSpacing="8"
+                            VerticalOptions="Center">
+
+                            <!-- Activity description -->
+                            <Entry
+                                Grid.Column="0"
+                                Text="{Binding ActivityText}"
+                                TextColor="{StaticResource ColorText}"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                Placeholder="Activity description"
+                                PlaceholderColor="{StaticResource ColorNickel}"
+                                VerticalOptions="Center" />
+
+                            <!-- Calories (read-only) -->
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding CaloriesDisplay}"
+                                TextColor="{StaticResource ColorNickel}"
+                                FontSize="13"
+                                HorizontalTextAlignment="End"
+                                VerticalOptions="Center" />
+
+                            <!-- Delete row — hidden for original run rows -->
+                            <Button
+                                Grid.Column="2"
+                                Text="✕"
+                                TextColor="{StaticResource ColorNickel}"
+                                BackgroundColor="Transparent"
+                                FontSize="16"
+                                Padding="8,0"
+                                IsVisible="{Binding IsRunRow, Converter={StaticResource InverseBoolConverter}}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RunReviewViewModel}}, Path=DeleteItemCommand}"
+                                CommandParameter="{Binding .}"
+                                VerticalOptions="Center" />
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Total calories row -->
+        <Border
+            Grid.Row="2"
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Margin="24,0,24,8"
+            Padding="14,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,Auto">
+                <Label
+                    Grid.Column="0"
+                    Text="Total Burned"
+                    TextColor="{StaticResource ColorText}"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+                <Label
+                    Grid.Column="1"
+                    Text="{Binding TotalCaloriesText}"
+                    TextColor="{StaticResource ColorCopper}"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Action buttons -->
+        <VerticalStackLayout
+            Grid.Row="3"
+            Padding="24,4,24,32"
+            Spacing="10">
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Button
+                    Grid.Column="0"
+                    Text="+ Add Activity"
+                    BackgroundColor="#2A2A2A"
+                    TextColor="{StaticResource ColorText}"
+                    CornerRadius="10"
+                    FontSize="15"
+                    Command="{Binding AddItemCommand}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Re-evaluate"
+                    BackgroundColor="#2A2A2A"
+                    TextColor="{StaticResource ColorNickel}"
+                    CornerRadius="10"
+                    FontSize="15"
+                    Command="{Binding ReEvaluateCommand}" />
+            </Grid>
+
+            <Button
+                Text="Save"
+                BackgroundColor="{StaticResource ColorCopper}"
+                TextColor="{StaticResource ColorBase}"
+                CornerRadius="10"
+                FontSize="17"
+                FontAttributes="Bold"
+                Command="{Binding SaveCommand}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Button
+                    Grid.Column="0"
+                    Text="Delete All"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource ColorNickel}"
+                    BorderColor="{StaticResource ColorNickel}"
+                    BorderWidth="1"
+                    CornerRadius="10"
+                    FontSize="15"
+                    Command="{Binding DeleteAllCommand}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Cancel"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource ColorNickel}"
+                    BorderColor="{StaticResource ColorNickel}"
+                    BorderWidth="1"
+                    CornerRadius="10"
+                    FontSize="15"
+                    Command="{Binding CancelCommand}" />
+            </Grid>
+
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>

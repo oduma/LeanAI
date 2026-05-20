@@ -22,12 +22,15 @@ internal sealed class FoodLogRepository(LeanAIDbContext context) : IFoodLogRepos
     public async Task DeleteByDateAsync(DateOnly date, CancellationToken ct = default)
     {
         var logs = await context.FoodLogs
+                                .Include(fl => fl.CaloryLog)
                                 .Where(fl => fl.Date == date)
                                 .ToListAsync(ct);
-        if (logs.Count > 0)
-        {
-            context.FoodLogs.RemoveRange(logs);
-            await context.SaveChangesAsync(ct);
-        }
+        if (logs.Count == 0) return;
+
+        // FoodLog → CaloryLog FK cascades parent→child (CaloryLog deletion removes FoodLog),
+        // so deleting FoodLog alone leaves CaloryLog orphaned. Remove both together.
+        context.FoodLogs.RemoveRange(logs);
+        context.CaloryLogs.RemoveRange(logs.Select(fl => fl.CaloryLog));
+        await context.SaveChangesAsync(ct);
     }
 }

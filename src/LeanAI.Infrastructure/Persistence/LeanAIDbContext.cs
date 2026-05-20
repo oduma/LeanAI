@@ -13,8 +13,9 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
     public DbSet<AppSettings>       AppSettings        => Set<AppSettings>();
     public DbSet<WeeklyAverage>     WeeklyAverages     => Set<WeeklyAverage>();
     public DbSet<ActivityLog>       ActivityLogs       => Set<ActivityLog>();
-    public DbSet<CaloryLog>         CaloryLogs         => Set<CaloryLog>();
-    public DbSet<FoodLog>           FoodLogs           => Set<FoodLog>();
+    public DbSet<CaloryLog>          CaloryLogs          => Set<CaloryLog>();
+    public DbSet<FoodLog>            FoodLogs            => Set<FoodLog>();
+    public DbSet<CustomActivityLog>  CustomActivityLogs  => Set<CustomActivityLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +104,21 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                                  s => DateOnly.Parse(s));
             entity.Property(e => e.Calories).IsRequired();
             entity.Property(e => e.SourceType).IsRequired();
+            entity.Property(e => e.Description);
+        });
+
+        modelBuilder.Entity<CustomActivityLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.Date).IsRequired()
+                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
+                                 s => DateOnly.Parse(s));
+            entity.Property(e => e.Description).IsRequired();
+            entity.HasOne(e => e.CaloryLog)
+                  .WithMany()
+                  .HasForeignKey(e => e.CaloryLogId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<FoodLog>(entity =>

@@ -69,7 +69,9 @@ public partial class App : Microsoft.Maui.Controls.Application
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         var ctx   = await _mediator.Send(new GetLogContextQuery(today));
-        if (ctx.TodayWeightKg is null)
+        // Skip navigation if an import modal (RunReview / FoodReview) is already open —
+        // navigating while a modal is present crashes with "Modal Stack is Empty".
+        if (ctx.TodayWeightKg is null && Shell.Current.Navigation.ModalStack.Count == 0)
             await Shell.Current.GoToAsync("//Log");
     }
 }

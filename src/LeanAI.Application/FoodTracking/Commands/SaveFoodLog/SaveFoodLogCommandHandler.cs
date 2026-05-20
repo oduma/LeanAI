@@ -9,7 +9,9 @@ public sealed class SaveFoodLogCommandHandler(IFoodLogRepository repo)
 {
     public async Task Handle(SaveFoodLogCommand request, CancellationToken cancellationToken)
     {
-        await repo.DeleteByDateAsync(request.Date, cancellationToken);
+        // In edit mode replace all food for the day; in import mode add alongside existing meals
+        if (!request.IsImportMode)
+            await repo.DeleteByDateAsync(request.Date, cancellationToken);
 
         var entities = request.Items.Select(item => new FoodLog
         {

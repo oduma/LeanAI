@@ -25,7 +25,8 @@ public sealed class GetLogContextQueryHandler(
         var weekEnd         = weekStart.AddDays(6);
         var weekEntries     = await actualRepository.GetRangeAsync(weekStart, weekEnd, cancellationToken);
 
-        var weekOrdered       = weekEntries.OrderBy(e => e.Date).ToList();
+        // Exclude zero-weight entries created by AppendActivityCommentCommand (notes-only rows)
+        var weekOrdered       = weekEntries.Where(e => e.WeightKg > 0).OrderBy(e => e.Date).ToList();
         var weekFirstWeightKg = weekOrdered.Count > 0 ? weekOrdered[0].WeightKg : (double?)null;
 
         var lastWeekStart  = weekStart.AddDays(-7);
@@ -49,7 +50,7 @@ public sealed class GetLogContextQueryHandler(
         }
 
         return new LogContextDto(
-            TodayWeightKg:              today?.WeightKg,
+            TodayWeightKg:              today is not null && today.WeightKg > 0 ? today.WeightKg : (double?)null,
             TodayNotes:                 today?.Notes,
             YesterdayWeightKg:          yesterday?.WeightKg,
             TodayIdealWeightKg:         ideal?.WeightKg,

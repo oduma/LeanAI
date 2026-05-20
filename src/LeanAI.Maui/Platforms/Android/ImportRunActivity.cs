@@ -1,8 +1,11 @@
 using Android.App;
+using Android.Content;
 using Android.Views;
 using Android.Widget;
-using LeanAI.Application.ActivityTracking.Commands.ImportRun;
+using LeanAI.Application.ActivityTracking.Commands.AnalyzeRunImage;
+using LeanAI.Application.ActivityTracking.DTOs;
 using LeanAI.Infrastructure;
+using LeanAI.Infrastructure.ActivityTracking.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
@@ -45,9 +48,9 @@ public class ImportRunActivity : Activity
             imageBytes = ms.ToArray();
         }
 
-        var services = IPlatformApplication.Current!.Services;
-        var mediator = services.GetRequiredService<IMediator>();
-        var date     = DateOnly.FromDateTime(DateTime.Today);
+        var services         = IPlatformApplication.Current!.Services;
+        var mediator         = services.GetRequiredService<IMediator>();
+        var runImportState   = services.GetRequiredService<RunImportStateService>();
 
         Task.Run(async () =>
         {
@@ -57,18 +60,19 @@ public class ImportRunActivity : Activity
                 if (!string.IsNullOrEmpty(apiKey))
                     services.GetRequiredService<GeminiKeyHolder>().ApiKey = apiKey;
 
-                var metrics = await mediator.Send(
-                    new ImportRunCommand(imageBytes, mimeType, date));
+                var result = await mediator.Send(new AnalyzeRunImageCommand(imageBytes, mimeType));
 
-                var distance = metrics.FirstOrDefault(m => m.ParameterName == "distance");
-                var duration = metrics.FirstOrDefault(m => m.ParameterName == "duration");
+                var row = new RunActivityRowDto(
+                    result.ActivityText,
+                    result.CaloriesBurned,
+                    IsRunRow: true,
+                    result.Metrics);
 
-                RunOnUiThread(() =>
-                    Toast.MakeText(
-                            this,
-                            $"Run imported: {distance?.Value} {distance?.Unit} in {duration?.Value}.",
-                            ToastLength.Short)!
-                         .Show());
+                runImportState.Set([row]);
+
+                var intent = new Intent(this, typeof(MainActivity));
+                intent.AddFlags(ActivityFlags.NewTask | ActivityFlags.SingleTop);
+                StartActivity(intent);
             }
             catch
             {

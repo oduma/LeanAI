@@ -79,10 +79,12 @@ internal sealed class GeminiRunImageAnalysisService(IChatClient chatClient) : IR
     private const string SystemInstruction =
         "You are a fitness data extractor. Analyze the running screenshot and extract metrics. " +
         "Reply with a JSON array only — no markdown fences, no extra text. " +
-        "Each item must have 'parameter_name' (one of: distance, pace, duration), 'value', and 'unit'. " +
+        "Each item must have 'parameter_name' (one of: distance, pace, duration, calories_burned), 'value', and 'unit'. " +
+        "Include calories_burned if shown on the screenshot. " +
         "Example: [{\"parameter_name\":\"distance\",\"value\":\"5.2\",\"unit\":\"km\"}," +
         "{\"parameter_name\":\"pace\",\"value\":\"5:30\",\"unit\":\"min/km\"}," +
-        "{\"parameter_name\":\"duration\",\"value\":\"28:36\",\"unit\":\"min\"}]";
+        "{\"parameter_name\":\"duration\",\"value\":\"28:36\",\"unit\":\"min\"}," +
+        "{\"parameter_name\":\"calories_burned\",\"value\":\"320\",\"unit\":\"kcal\"}]";
 
     private sealed record GeminiMetricDto(
         [property: JsonPropertyName("parameter_name")] string? ParameterName,

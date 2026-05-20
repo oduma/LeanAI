@@ -4,8 +4,8 @@ namespace LeanAI.Infrastructure.FoodTracking.Services;
 
 public sealed class FoodImportStateService
 {
-    private readonly object                    _lock    = new();
-    private          IReadOnlyList<FoodItemDto>? _pending;
+    private static readonly object                    _lock    = new();
+    private static          IReadOnlyList<FoodItemDto>? _pending;
 
     public bool HasPending
     {

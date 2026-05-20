@@ -48,9 +48,12 @@ public static class DependencyInjection
         services.AddTransient<IAIGoalValidationService, GeminiGoalValidationService>();
         services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
         services.AddTransient<IRunImageAnalysisService, GeminiRunImageAnalysisService>();
+        services.AddTransient<IActivityCaloriesEstimationService, GeminiActivityCaloriesEstimationService>();
+        services.AddSingleton<RunImportStateService>();
 
         services.AddScoped<ICaloryLogRepository, CaloryLogRepository>();
         services.AddScoped<IFoodLogRepository, FoodLogRepository>();
+        services.AddScoped<ICustomActivityLogRepository, CustomActivityLogRepository>();
         services.AddTransient<IFoodImageAnalysisService, GeminiFoodImageAnalysisService>();
         services.AddSingleton<FoodImportStateService>();
 

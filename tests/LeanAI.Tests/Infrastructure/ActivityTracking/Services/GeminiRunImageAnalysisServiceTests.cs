@@ -72,4 +72,33 @@ public class GeminiRunImageAnalysisServiceTests
         act.Should().Throw<InvalidOperationException>()
            .WithMessage("Could not extract run metrics from the provided image.");
     }
+
+    [Fact]
+    public void ParseResponse_WithCaloriesBurned_IncludesCaloriesInResult()
+    {
+        var json =
+            """
+            [
+              {"parameter_name":"distance","value":"5.2","unit":"km"},
+              {"parameter_name":"pace","value":"5:30","unit":"min/km"},
+              {"parameter_name":"duration","value":"28:36","unit":"min"},
+              {"parameter_name":"calories_burned","value":"320","unit":"kcal"}
+            ]
+            """;
+
+        var result = GeminiRunImageAnalysisService.ParseResponse(json);
+
+        result.Should().HaveCount(4);
+        result.Should().ContainSingle(m =>
+            m.ParameterName == "calories_burned" && m.Value == "320" && m.Unit == "kcal");
+    }
+
+    [Fact]
+    public void ParseResponse_WithoutCaloriesBurned_StillSucceeds()
+    {
+        var result = GeminiRunImageAnalysisService.ParseResponse(ValidJson);
+
+        result.Should().HaveCount(3);
+        result.Should().NotContain(m => m.ParameterName == "calories_burned");
+    }
 }
