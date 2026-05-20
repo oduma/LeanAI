@@ -1,4 +1,3 @@
-using LeanAI.Application.WeightManagement.Commands.AppendActivityComment;
 using LeanAI.Domain.ActivityTracking.Entities;
 using LeanAI.Domain.ActivityTracking.Interfaces;
 using LeanAI.Domain.FoodTracking.Entities;
@@ -10,8 +9,7 @@ namespace LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
 public sealed class SaveRunActivitiesCommandHandler(
     ICaloryLogRepository         caloryLogRepo,
     ICustomActivityLogRepository customActivityLogRepo,
-    IActivityLogRepository       activityLogRepo,
-    IMediator                    mediator)
+    IActivityLogRepository       activityLogRepo)
     : IRequestHandler<SaveRunActivitiesCommand>
 {
     public async Task Handle(SaveRunActivitiesCommand request, CancellationToken cancellationToken)
@@ -49,16 +47,5 @@ public sealed class SaveRunActivitiesCommandHandler(
                 }, cancellationToken);
             }
         }
-
-        // Append all activity descriptions to the day's notes as one block
-        var allTexts = request.Rows
-            .Select(r => r.ActivityText)
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .ToList();
-
-        if (allTexts.Count > 0)
-            await mediator.Send(
-                new AppendActivityCommentCommand(request.Date, string.Join("\n", allTexts)),
-                cancellationToken);
     }
 }

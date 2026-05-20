@@ -719,6 +719,80 @@ Enhance the run-import flow with a review screen (mirroring the food-review scre
 
 ---
 
+## Phase 11: BMR, Activity Notes Removal & Calorie Tile Polishing ✅ COMPLETE
+
+### Goal
+Introduce a locally-computed Basal Metabolic Rate (BMR) that factors into daily net calories, remove the automatic appending of activity descriptions to the daily notes field, and polish the Calories tile display with a signed value and corrected color logic.
+
+### Functional Requirements
+
+#### BMR Setting
+- A new toggle **"Use BMR (Basal Metabolic Rate)"** is added to the **GENERIC SETTINGS** section of the Settings screen.
+- Default: off (`false`). Saves immediately on toggle (same behavior as the First Day of Week picker).
+
+#### BMR Calculation (Mifflin-St Jeor formula)
+- When "Use BMR" is enabled, every time the user saves a weight entry in the Daily Log, BMR is computed locally using the Mifflin-St Jeor formula:
+  - **Male:**   `BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) − 5`
+  - **Female:** `BMR = (10 × weight_kg) + (6.25 × height_cm) − (5 × age) − 161`
+- No AI or network call is made — the result is pure arithmetic.
+- If the user's profile is missing height, gender, or age, BMR is silently skipped.
+- The result is stored as a `CaloryLog` row with `SourceType = "bmr"` for the date (upsert — re-entering weight recalculates it).
+- Notes-only auto-saves (weight unchanged) do not re-trigger BMR recomputation.
+
+#### BMR in Calories Detail Screen
+- The Calories Detail screen gains a **non-editable "Basal Metabolic Rate" section** at the top (before Food).
+- The section is only shown when a BMR entry exists for the selected date.
+- Displays the BMR value as `−N kcal` (Copper, large, bold) — it is a calorie expenditure.
+- Subtitle: "Mifflin-St Jeor · Read only" (Nickel, small). No Edit button.
+
+#### Net Calories Calculation
+- Net = **Food − Activity − BMR**
+- `GetTotalCaloriesAsync` returns `double?`:
+  - `null` when no food, activity, or BMR data exists for the date.
+  - Otherwise returns the signed net value (can be negative on active days).
+- The same net formula is used on both the Daily Log tile and the Calories Detail screen.
+
+#### Activity Notes Removal
+- Activities are **no longer automatically appended** to `DailyActualWeight.Notes`.
+- The Notes field in the Daily Log is exclusively user-entered free text.
+- Users who want to see their activity log can navigate to the Calories Detail screen.
+
+#### Calorie Tile — Signed Display & Inverted Color
+- **"—" (Nickel):** shown only when there is literally no food, activity, or BMR data for the day.
+- **Positive net (e.g., "+1 847 kcal"):** displayed in **Nickel** — calorie surplus.
+- **Zero or negative net (e.g., "0 kcal", "−300 kcal"):** displayed in **Copper** — at-maintenance or deficit.
+
+### Technical Specifications
+
+| Item | Detail |
+|------|--------|
+| `AppSettings.UseBmr` | New `bool` property (default `false`); stored as `INTEGER` in `AppSettings` table |
+| `CaloryLog { SourceType = "bmr" }` | One row per day; same ledger as food/activity entries |
+| `GetTotalCaloriesAsync` return type | Changed from `double` to `double?` — null means no data |
+| Net query | `burned = SUM(CaloryLog WHERE SourceType IN ("activity","bmr"))` |
+| `CalculateAndSaveBmrCommand` | Application command; handler injects `IAppSettingsRepository`, `IUserProfileRepository`, `ICaloryLogRepository`; no service interface needed (pure math) |
+| `GetBmrForDateQuery` | Returns `double?` — null if no BMR row exists for the date |
+| `SaveRunActivitiesCommandHandler` | Remove `AppendActivityCommentCommand` call and `IMediator` dependency |
+| EF Core migration | `Add_UseBmr_To_AppSettings` — adds `UseBmr INTEGER NOT NULL DEFAULT 0` |
+
+### Corrections & Clarifications (implemented during Phase 11)
+
+- **Calorie tile refreshes immediately after BMR save.** After `CalculateAndSaveBmrCommand` completes inside `SaveWithDebounceAsync`, `LogViewModel` immediately re-queries `GetTotalCaloriesForDateQuery` and updates `TotalCaloriesText`, `HasCalories`, and `IsCaloriesDeficit`. The fix extracts the tile-update logic into a `RefreshCalorieTileAsync` helper called from both `LoadCoreAsync` and `SaveWithDebounceAsync`.
+- **`SaveRunActivitiesCommandHandler` now only deletes activity calories in edit mode.** Import mode (`IsImportMode: true`) no longer calls `DeleteActivityCaloriesForDateAsync` — it adds new rows alongside existing entries. Edit mode (`IsImportMode: false`) still performs delete-then-insert.
+
+### Definition of Done
+
+- ✅ "Use BMR" toggle in General Settings saves immediately on toggle
+- ✅ Saving weight (BMR enabled, full profile) computes and upserts BMR via Mifflin-St Jeor
+- ✅ Male formula `(10w + 6.25h − 5age − 5)` and female formula `(10w + 6.25h − 5age − 161)` verified by unit tests
+- ✅ BMR section at top of Calories Detail; Copper value, "Mifflin-St Jeor · Read only" subtitle; no Edit button
+- ✅ Net = food − activity − bmr on tile and detail screen; tile refreshes immediately when weight is saved
+- ✅ Tile "—" only when no data; "+N kcal" Nickel when positive; "−N kcal"/"0 kcal" Copper when ≤ 0
+- ✅ Activity descriptions no longer appended to daily notes
+- ✅ `dotnet build` → 0 errors. `dotnet test` → 190 / 190 tests green.
+
+---
+
 ## Open Issues
 
 ### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED

@@ -30,14 +30,26 @@ public class GetTotalCaloriesForDateQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenNoEntries_ReturnsZero()
+    public async Task Handle_WhenNetIsZero_ReturnsZero()
     {
         _repoMock
             .Setup(r => r.GetTotalCaloriesAsync(TestDate, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(0.0);
+            .ReturnsAsync((double?)0.0);
 
         var result = await _handler.Handle(new GetTotalCaloriesForDateQuery(TestDate), CancellationToken.None);
 
         result.Should().Be(0.0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoData_ReturnsNull()
+    {
+        _repoMock
+            .Setup(r => r.GetTotalCaloriesAsync(TestDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((double?)null);
+
+        var result = await _handler.Handle(new GetTotalCaloriesForDateQuery(TestDate), CancellationToken.None);
+
+        result.Should().BeNull();
     }
 }

@@ -37,6 +37,34 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="24,0" Spacing="16">
 
+                <!-- BMR section (formula-calculated, read-only) -->
+                <Border
+                    BackgroundColor="#2A2A2A"
+                    StrokeThickness="0"
+                    Padding="0"
+                    IsVisible="{Binding HasBmr}"
+                    Margin="0,8,0,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Padding="14,14" Spacing="4">
+                        <Label
+                            Text="BASAL METABOLIC RATE"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="11"
+                            CharacterSpacing="1" />
+                        <Label
+                            Text="{Binding BmrText}"
+                            TextColor="{StaticResource ColorCopper}"
+                            FontSize="26"
+                            FontAttributes="Bold" />
+                        <Label
+                            Text="Mifflin-St Jeor · Read only"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="11" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- Food section header -->
                 <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
                     <Label

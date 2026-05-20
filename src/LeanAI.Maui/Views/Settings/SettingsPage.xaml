@@ -54,6 +54,33 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Generic Settings card — Use BMR -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*,Auto" Padding="16,14">
+                    <VerticalStackLayout Grid.Column="0" Spacing="3">
+                        <Label
+                            Text="Use BMR (Basal Metabolic Rate)"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="15" />
+                        <Label
+                            Text="Subtracts your estimated resting calorie burn from the daily net"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="12" />
+                    </VerticalStackLayout>
+                    <Switch
+                        Grid.Column="1"
+                        IsToggled="{Binding UseBmr}"
+                        OnColor="{StaticResource ColorCopper}"
+                        VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
             <!-- AI CONFIGURATION section header -->
             <Label
                 Text="AI CONFIGURATION"

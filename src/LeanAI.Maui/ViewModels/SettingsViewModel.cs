@@ -27,6 +27,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string    _geminiApiKey       = string.Empty;
     [ObservableProperty] private bool      _hasGoogleToken;
     [ObservableProperty] private int       _calendarFirstDayIndex;
+    [ObservableProperty] private bool      _useBmr;
 
     public DayOfWeek CalendarFirstDay =>
         CalendarFirstDayIndex == 0 ? DayOfWeek.Monday : DayOfWeek.Sunday;
@@ -56,6 +57,12 @@ public partial class SettingsViewModel : ObservableObject
         _ = SaveImmediateAsync();
     }
 
+    partial void OnUseBmrChanged(bool value)
+    {
+        if (_isLoading) return;
+        _ = SaveImmediateAsync();
+    }
+
     private void TriggerSave()
     {
         _saveCts?.Cancel();
@@ -77,7 +84,7 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     private async Task SaveImmediateAsync()
-        => await _mediator.Send(new SaveAppSettingsCommand(GeminiModelName, GeminiApiKey, CalendarFirstDay));
+        => await _mediator.Send(new SaveAppSettingsCommand(GeminiModelName, GeminiApiKey, CalendarFirstDay, UseBmr));
 
     [RelayCommand]
     private async Task LoadAiSettingsAsync()
@@ -89,6 +96,7 @@ public partial class SettingsViewModel : ObservableObject
             GeminiModelName       = dto.GeminiModelName;
             GeminiApiKey          = dto.GeminiApiKey;
             CalendarFirstDayIndex = dto.CalendarFirstDay == DayOfWeek.Monday ? 0 : 1;
+            UseBmr                = dto.UseBmr;
             HasGoogleToken        = await _googleTokenStorage.GetRefreshTokenAsync() is not null;
         }
         finally

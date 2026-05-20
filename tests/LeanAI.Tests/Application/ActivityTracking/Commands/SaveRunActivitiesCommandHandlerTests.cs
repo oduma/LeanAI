@@ -1,23 +1,20 @@
 using FluentAssertions;
 using LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
 using LeanAI.Application.ActivityTracking.DTOs;
-using LeanAI.Application.WeightManagement.Commands.AppendActivityComment;
 using LeanAI.Domain.ActivityTracking.Entities;
 using LeanAI.Domain.ActivityTracking.Interfaces;
 using LeanAI.Domain.FoodTracking.Entities;
 using LeanAI.Domain.FoodTracking.Interfaces;
-using MediatR;
 using Moq;
 
 namespace LeanAI.Tests.Application.ActivityTracking.Commands;
 
 public class SaveRunActivitiesCommandHandlerTests
 {
-    private readonly Mock<ICaloryLogRepository>          _caloryRepoMock          = new();
-    private readonly Mock<ICustomActivityLogRepository>  _customActivityRepoMock  = new();
-    private readonly Mock<IActivityLogRepository>        _activityRepoMock        = new();
-    private readonly Mock<IMediator>                     _mediatorMock            = new();
-    private readonly SaveRunActivitiesCommandHandler     _handler;
+    private readonly Mock<ICaloryLogRepository>         _caloryRepoMock         = new();
+    private readonly Mock<ICustomActivityLogRepository> _customActivityRepoMock = new();
+    private readonly Mock<IActivityLogRepository>       _activityRepoMock       = new();
+    private readonly SaveRunActivitiesCommandHandler    _handler;
 
     private static readonly DateOnly TestDate = new(2026, 5, 18);
 
@@ -33,8 +30,7 @@ public class SaveRunActivitiesCommandHandlerTests
         _handler = new SaveRunActivitiesCommandHandler(
             _caloryRepoMock.Object,
             _customActivityRepoMock.Object,
-            _activityRepoMock.Object,
-            _mediatorMock.Object);
+            _activityRepoMock.Object);
 
         _caloryRepoMock
             .Setup(r => r.DeleteActivityCaloriesForDateAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
@@ -57,14 +53,10 @@ public class SaveRunActivitiesCommandHandlerTests
         _customActivityRepoMock
             .Setup(r => r.AddAsync(It.IsAny<CustomActivityLog>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-
-        _mediatorMock
-            .Setup(m => m.Send(It.IsAny<AppendActivityCommentCommand>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
     }
 
     [Fact]
-    public async Task Handle_AlwaysDeletesActivityCaloriesFirst()
+    public async Task Handle_EditMode_DeletesActivityCaloriesFirst()
     {
         var cmd = new SaveRunActivitiesCommand(TestDate, [], IsImportMode: false);
 
@@ -76,7 +68,19 @@ public class SaveRunActivitiesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ImportMode_RunRow_SavesMetricsAndAppendsComment()
+    public async Task Handle_ImportMode_DoesNotDeleteActivityCalories()
+    {
+        var cmd = new SaveRunActivitiesCommand(TestDate, [], IsImportMode: true);
+
+        await _handler.Handle(cmd, CancellationToken.None);
+
+        _caloryRepoMock.Verify(
+            r => r.DeleteActivityCaloriesForDateAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ImportMode_RunRow_SavesMetrics()
     {
         var rows = new List<RunActivityRowDto>
         {
@@ -88,12 +92,6 @@ public class SaveRunActivitiesCommandHandlerTests
 
         _activityRepoMock.Verify(
             r => r.AddRangeAsync(It.IsAny<IEnumerable<ActivityLog>>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        _mediatorMock.Verify(
-            m => m.Send(
-                It.Is<AppendActivityCommentCommand>(c => c.Date == TestDate && c.Comment == "I run for 5.2km..."),
-                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -134,7 +132,7 @@ public class SaveRunActivitiesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_EditMode_RunRow_DoesNotSaveMetrics_ButDoesAppendComment()
+    public async Task Handle_EditMode_RunRow_DoesNotSaveMetrics()
     {
         var rows = new List<RunActivityRowDto>
         {
@@ -146,11 +144,5 @@ public class SaveRunActivitiesCommandHandlerTests
         _activityRepoMock.Verify(
             r => r.AddRangeAsync(It.IsAny<IEnumerable<ActivityLog>>(), It.IsAny<CancellationToken>()),
             Times.Never);
-
-        _mediatorMock.Verify(
-            m => m.Send(
-                It.Is<AppendActivityCommentCommand>(c => c.Date == TestDate && c.Comment == "Some run"),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 }

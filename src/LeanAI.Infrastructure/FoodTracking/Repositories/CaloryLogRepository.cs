@@ -7,16 +7,21 @@ namespace LeanAI.Infrastructure.FoodTracking.Repositories;
 
 internal sealed class CaloryLogRepository(LeanAIDbContext context) : ICaloryLogRepository
 {
-    public async Task<double> GetTotalCaloriesAsync(DateOnly date, CancellationToken ct = default)
+    public async Task<double?> GetTotalCaloriesAsync(DateOnly date, CancellationToken ct = default)
     {
+        var hasFoodData   = await context.FoodLogs.AnyAsync(fl => fl.Date == date, ct);
+        var hasCaloryData = await context.CaloryLogs.AnyAsync(cl => cl.Date == date, ct);
+        if (!hasFoodData && !hasCaloryData) return null;
+
         // Food: join through FoodLogs so orphaned CaloryLog rows are never counted
-        var food     = await context.FoodLogs
-                                    .Where(fl => fl.Date == date)
-                                    .SumAsync(fl => fl.CaloryLog.Calories, ct);
-        var activity = await context.CaloryLogs
-                                    .Where(cl => cl.Date == date && cl.SourceType == "activity")
-                                    .SumAsync(cl => cl.Calories, ct);
-        return food - activity;
+        var food   = await context.FoodLogs
+                                  .Where(fl => fl.Date == date)
+                                  .SumAsync(fl => fl.CaloryLog.Calories, ct);
+        var burned = await context.CaloryLogs
+                                  .Where(cl => cl.Date == date
+                                            && (cl.SourceType == "activity" || cl.SourceType == "bmr"))
+                                  .SumAsync(cl => cl.Calories, ct);
+        return food - burned;
     }
 
     public async Task<CaloryLog> AddActivityAsync(
@@ -52,4 +57,26 @@ internal sealed class CaloryLogRepository(LeanAIDbContext context) : ICaloryLogR
                         .Where(cl => cl.Date == date && cl.SourceType == "activity")
                         .OrderBy(cl => cl.Id)
                         .ToListAsync(ct);
+
+    public async Task<CaloryLog?> GetBmrForDateAsync(DateOnly date, CancellationToken ct = default)
+        => await context.CaloryLogs
+                        .Where(cl => cl.Date == date && cl.SourceType == "bmr")
+                        .FirstOrDefaultAsync(ct);
+
+    public async Task UpsertBmrAsync(DateOnly date, double calories, CancellationToken ct = default)
+    {
+        var existing = await context.CaloryLogs
+                                    .Where(cl => cl.Date == date && cl.SourceType == "bmr")
+                                    .FirstOrDefaultAsync(ct);
+        if (existing is not null)
+            context.CaloryLogs.Remove(existing);
+
+        context.CaloryLogs.Add(new CaloryLog
+        {
+            Date       = date,
+            Calories   = calories,
+            SourceType = "bmr"
+        });
+        await context.SaveChangesAsync(ct);
+    }
 }

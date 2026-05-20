@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using LeanAI.Application.FoodTracking.Queries.GetTotalCaloriesForDate;
+using LeanAI.Application.WeightManagement.Commands.CalculateAndSaveBmr;
 using LeanAI.Application.WeightManagement.Commands.UpsertDailyLog;
 using LeanAI.Application.WeightManagement.Queries.GetLogContext;
 using LeanAI.Domain.WeightManagement.Enums;
@@ -51,6 +52,9 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
     [ObservableProperty] private bool     _isWeeklyAverageTrending;
     [ObservableProperty] private string   _totalCaloriesText        = "—";
     [ObservableProperty] private bool     _hasCalories;
+    [ObservableProperty] private bool     _isCaloriesDeficit;
+
+    private double? _lastSavedWeightKg;
 
     private readonly IServiceProvider       _serviceProvider;
     private readonly FoodImportStateService _foodImportState;
@@ -161,9 +165,20 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
 
         RecalculateIndicators();
 
+        await RefreshCalorieTileAsync(date, ct);
+    }
+
+    private async Task RefreshCalorieTileAsync(DateOnly date, CancellationToken ct = default)
+    {
         var totalCal = await _mediator.Send(new GetTotalCaloriesForDateQuery(date), ct);
-        HasCalories       = totalCal != 0;
-        TotalCaloriesText = totalCal != 0 ? $"{totalCal:N0} kcal" : "—";
+        HasCalories       = totalCal.HasValue;
+        IsCaloriesDeficit = totalCal.HasValue && totalCal.Value <= 0;
+        TotalCaloriesText = totalCal switch
+        {
+            null => "—",
+            > 0  => $"+{totalCal.Value:N0} kcal",
+            _    => $"{totalCal.Value:N0} kcal"
+        };
     }
 
     private void RecalculateIndicators()
@@ -282,6 +297,13 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
                 _todayWasAlreadySaved = true;
                 _weekDaysLogged++;
                 _weekFirstWeightKg ??= weightKg.Value;
+            }
+
+            if (weightKg != _lastSavedWeightKg)
+            {
+                _lastSavedWeightKg = weightKg;
+                await _mediator.Send(new CalculateAndSaveBmrCommand(EntryDate, weightKg.Value), ct);
+                await RefreshCalorieTileAsync(EntryDate, ct);
             }
 
             IsAutosaving = false;

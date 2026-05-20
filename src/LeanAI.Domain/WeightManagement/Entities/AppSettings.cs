@@ -10,4 +10,6 @@ public class AppSettings : BaseEntity
 
     /// <summary>First calendar column. Monday or Sunday. Default Monday.</summary>
     public DayOfWeek CalendarFirstDay { get; set; } = DayOfWeek.Monday;
+
+    public bool UseBmr { get; set; }
 }

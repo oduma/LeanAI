@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using LeanAI.Application.FoodTracking.DTOs;
 using LeanAI.Application.FoodTracking.Queries.GetActivityCaloriesForDate;
 using LeanAI.Application.FoodTracking.Queries.GetFoodLogForDate;
+using LeanAI.Application.WeightManagement.Queries.GetBmrForDate;
 using LeanAI.Maui.Messages;
 using LeanAI.Maui.Views.FoodReview;
 using LeanAI.Maui.Views.RunReview;
@@ -19,6 +20,8 @@ public partial class CaloriesDetailViewModel(IMediator mediator, IServiceProvide
 {
     private DateOnly _date;
 
+    [ObservableProperty] private string _bmrText          = "—";
+    [ObservableProperty] private bool   _hasBmr;
     [ObservableProperty] private string _foodTotalText     = "—";
     [ObservableProperty] private string _activityTotalText = "—";
     [ObservableProperty] private string _netCaloriesText   = "—";
@@ -52,13 +55,20 @@ public partial class CaloriesDetailViewModel(IMediator mediator, IServiceProvide
         foreach (var a in activityLogs)
             ActivityItems.Add(a);
 
+        var bmr   = await mediator.Send(new GetBmrForDateQuery(_date));
+        HasBmr    = bmr.HasValue;
+        BmrText   = bmr.HasValue ? $"−{bmr.Value:N0} kcal" : "—";
+
         var foodTotal     = FoodItems.Sum(f => f.Calories);
         var activityTotal = ActivityItems.Sum(a => a.Calories);
-        var net           = foodTotal - activityTotal;
+        var bmrTotal      = bmr ?? 0;
+        var net           = foodTotal - activityTotal - bmrTotal;
 
-        FoodTotalText     = foodTotal     > 0  ? $"{foodTotal:N0} kcal"     : "—";
-        ActivityTotalText = activityTotal > 0  ? $"{activityTotal:N0} kcal" : "—";
-        NetCaloriesText   = net           != 0 ? $"{net:N0} kcal"           : "—";
+        FoodTotalText     = foodTotal     > 0 ? $"{foodTotal:N0} kcal"     : "—";
+        ActivityTotalText = activityTotal > 0 ? $"{activityTotal:N0} kcal" : "—";
+        NetCaloriesText   = !bmr.HasValue && foodTotal == 0 && activityTotal == 0
+                            ? "—"
+                            : $"{net:N0} kcal";
     }
 
     [RelayCommand]

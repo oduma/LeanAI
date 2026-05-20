@@ -69,6 +69,7 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.Property(e => e.CalendarFirstDay)
                   .HasConversion<int>()
                   .IsRequired();
+            entity.Property(e => e.UseBmr).IsRequired();
         });
 
         modelBuilder.Entity<WeeklyAverage>(entity =>

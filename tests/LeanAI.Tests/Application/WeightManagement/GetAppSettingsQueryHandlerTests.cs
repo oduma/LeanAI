@@ -33,6 +33,7 @@ public class GetAppSettingsQueryHandlerTests
         result.GeminiModelName.Should().Be(AppSettings.DefaultModelName);
         result.GeminiApiKey.Should().BeEmpty();
         result.CalendarFirstDay.Should().Be(DayOfWeek.Monday);
+        result.UseBmr.Should().BeFalse();
     }
 
     [Fact]
@@ -101,5 +102,21 @@ public class GetAppSettingsQueryHandlerTests
         var result = await _handler.Handle(new GetAppSettingsQuery(), CancellationToken.None);
 
         result.CalendarFirstDay.Should().Be(DayOfWeek.Sunday);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSettingsHaveUseBmrTrue_ReturnsUseBmrTrue()
+    {
+        var settings = new AppSettings { UseBmr = true };
+        _settingsRepoMock
+            .Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings);
+        _apiKeyStorageMock
+            .Setup(s => s.GetAsync(ApiKeyNames.Gemini, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var result = await _handler.Handle(new GetAppSettingsQuery(), CancellationToken.None);
+
+        result.UseBmr.Should().BeTrue();
     }
 }
