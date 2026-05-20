@@ -11,4 +11,7 @@ public interface ICaloryLogRepository
     Task<IReadOnlyList<CaloryLog>> GetActivityCaloriesForDateAsync(DateOnly date, CancellationToken ct = default);
     Task<CaloryLog?> GetBmrForDateAsync(DateOnly date, CancellationToken ct = default);
     Task UpsertBmrAsync(DateOnly date, double calories, CancellationToken ct = default);
+    Task<CaloryLog> AddRoutineCopyAsync(CaloryLog log, CancellationToken ct = default);
+    Task<IReadOnlyList<CaloryLog>> GetRoutineCopiesForDateAsync(DateOnly date, CancellationToken ct = default);
+    Task DeleteRoutineCopyAsync(CaloryLog log, CancellationToken ct = default);
 }

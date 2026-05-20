@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<ICaloryLogRepository, CaloryLogRepository>();
         services.AddScoped<IFoodLogRepository, FoodLogRepository>();
         services.AddScoped<ICustomActivityLogRepository, CustomActivityLogRepository>();
+        services.AddScoped<IRoutineRepository, RoutineRepository>();
         services.AddTransient<IFoodImageAnalysisService, GeminiFoodImageAnalysisService>();
         services.AddSingleton<FoodImportStateService>();
 

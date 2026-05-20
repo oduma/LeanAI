@@ -19,6 +19,12 @@ internal sealed class FoodLogRepository(LeanAIDbContext context) : IFoodLogRepos
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task<FoodLog?> GetByCaloryLogIdAsync(Guid caloryLogId, CancellationToken ct = default)
+        => await context.FoodLogs
+                        .Include(fl => fl.CaloryLog)
+                        .Where(fl => fl.CaloryLogId == caloryLogId)
+                        .FirstOrDefaultAsync(ct);
+
     public async Task DeleteByDateAsync(DateOnly date, CancellationToken ct = default)
     {
         var logs = await context.FoodLogs

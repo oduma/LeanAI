@@ -63,6 +63,34 @@ internal sealed class CaloryLogRepository(LeanAIDbContext context) : ICaloryLogR
                         .Where(cl => cl.Date == date && cl.SourceType == "bmr")
                         .FirstOrDefaultAsync(ct);
 
+    public async Task<CaloryLog> AddRoutineCopyAsync(CaloryLog log, CancellationToken ct = default)
+    {
+        context.CaloryLogs.Add(log);
+        await context.SaveChangesAsync(ct);
+        return log;
+    }
+
+    public async Task<IReadOnlyList<CaloryLog>> GetRoutineCopiesForDateAsync(DateOnly date, CancellationToken ct = default)
+        => await context.CaloryLogs
+                        .Where(cl => cl.Date == date && cl.RoutineItemId != null)
+                        .ToListAsync(ct);
+
+    public async Task DeleteRoutineCopyAsync(CaloryLog log, CancellationToken ct = default)
+    {
+        // Also remove any linked FoodLog (EF Core in-memory cascade requires both sides tracked)
+        var foodLog = await context.FoodLogs.Where(fl => fl.CaloryLogId == log.Id).FirstOrDefaultAsync(ct);
+        if (foodLog is not null)
+            context.FoodLogs.Remove(foodLog);
+
+        // Also remove any linked CustomActivityLog
+        var customLog = await context.CustomActivityLogs.Where(c => c.CaloryLogId == log.Id).FirstOrDefaultAsync(ct);
+        if (customLog is not null)
+            context.CustomActivityLogs.Remove(customLog);
+
+        context.CaloryLogs.Remove(log);
+        await context.SaveChangesAsync(ct);
+    }
+
     public async Task UpsertBmrAsync(DateOnly date, double calories, CancellationToken ct = default)
     {
         var existing = await context.CaloryLogs

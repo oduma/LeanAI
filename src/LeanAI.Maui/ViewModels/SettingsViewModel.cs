@@ -9,6 +9,7 @@ using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
 using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Maui.Messages;
 using LeanAI.Maui.Views.Import;
+using LeanAI.Maui.Views.Routine;
 using LeanAI.Maui.Views.Wizard;
 using MediatR;
 
@@ -103,6 +104,14 @@ public partial class SettingsViewModel : ObservableObject
         {
             _isLoading = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task OpenRoutinesAsync()
+    {
+        var page = _services.GetRequiredService<RoutineManagementPage>();
+        await page.InitialiseAsync();
+        await Shell.Current.Navigation.PushModalAsync(page);
     }
 
     [RelayCommand]

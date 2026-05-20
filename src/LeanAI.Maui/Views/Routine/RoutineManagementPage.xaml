@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:LeanAI.Maui.ViewModels"
+    x:Class="LeanAI.Maui.Views.Routine.RoutineManagementPage"
+    x:DataType="vm:RoutineManagementViewModel"
+    BackgroundColor="{StaticResource ColorBase}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid
+            Grid.Row="0"
+            Padding="24,32,24,12"
+            ColumnDefinitions="*,Auto">
+            <Label
+                Grid.Column="0"
+                Text="Manage Routine"
+                TextColor="{StaticResource ColorText}"
+                FontSize="24"
+                FontAttributes="Bold"
+                VerticalOptions="Center" />
+            <Button
+                Grid.Column="1"
+                Text="Cancel"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource ColorNickel}"
+                FontSize="15"
+                Padding="8,0"
+                Command="{Binding CancelCommand}"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Scrollable content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="24,0" Spacing="16">
+
+                <!-- FOOD section label -->
+                <Label
+                    Text="FOOD"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="11"
+                    CharacterSpacing="2"
+                    Margin="4,8,0,4" />
+
+                <!-- Food items list -->
+                <CollectionView
+                    ItemsSource="{Binding FoodItems}"
+                    SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RoutineFoodItemViewModel">
+                            <Border
+                                BackgroundColor="#2A2A2A"
+                                StrokeThickness="0"
+                                Padding="0"
+                                Margin="0,0,0,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Grid Padding="14,10" ColumnDefinitions="Auto,*,Auto,Auto">
+                                    <CheckBox
+                                        Grid.Column="0"
+                                        IsChecked="{Binding IsChecked}"
+                                        Color="{StaticResource ColorCopper}"
+                                        VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center" Margin="4,0">
+                                        <Entry
+                                            Text="{Binding FoodItem}"
+                                            TextColor="{StaticResource ColorText}"
+                                            BackgroundColor="Transparent"
+                                            FontSize="15"
+                                            Placeholder="Food item"
+                                            PlaceholderColor="{StaticResource ColorNickel}" />
+                                        <Entry
+                                            Text="{Binding Quantity}"
+                                            TextColor="{StaticResource ColorNickel}"
+                                            BackgroundColor="Transparent"
+                                            FontSize="13"
+                                            Placeholder="Quantity (e.g. 200g)"
+                                            PlaceholderColor="{StaticResource ColorNickel}" />
+                                    </VerticalStackLayout>
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="{Binding CaloriesText}"
+                                        TextColor="{StaticResource ColorNickel}"
+                                        FontSize="13"
+                                        VerticalOptions="Center"
+                                        Margin="4,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Add Food Item button -->
+                <Button
+                    Text="+ Add Food Item"
+                    BackgroundColor="#2A2A2A"
+                    TextColor="{StaticResource ColorCopper}"
+                    CornerRadius="10"
+                    FontSize="14"
+                    Padding="16,12"
+                    HorizontalOptions="Start"
+                    Command="{Binding AddFoodItemCommand}" />
+
+                <!-- ACTIVITIES section label -->
+                <Label
+                    Text="ACTIVITIES"
+                    TextColor="{StaticResource ColorNickel}"
+                    FontSize="11"
+                    CharacterSpacing="2"
+                    Margin="4,8,0,4" />
+
+                <!-- Activity items list -->
+                <CollectionView
+                    ItemsSource="{Binding ActivityItems}"
+                    SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RoutineActivityItemViewModel">
+                            <Border
+                                BackgroundColor="#2A2A2A"
+                                StrokeThickness="0"
+                                Padding="0"
+                                Margin="0,0,0,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Grid Padding="14,10" ColumnDefinitions="Auto,*,Auto">
+                                    <CheckBox
+                                        Grid.Column="0"
+                                        IsChecked="{Binding IsChecked}"
+                                        Color="{StaticResource ColorCopper}"
+                                        VerticalOptions="Center" />
+                                    <Entry
+                                        Grid.Column="1"
+                                        Text="{Binding Description}"
+                                        TextColor="{StaticResource ColorText}"
+                                        BackgroundColor="Transparent"
+                                        FontSize="15"
+                                        Placeholder="Activity description"
+                                        PlaceholderColor="{StaticResource ColorNickel}"
+                                        VerticalOptions="Center"
+                                        Margin="4,0" />
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="{Binding CaloriesText}"
+                                        TextColor="{StaticResource ColorNickel}"
+                                        FontSize="13"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Add Activity button -->
+                <Button
+                    Text="+ Add Activity"
+                    BackgroundColor="#2A2A2A"
+                    TextColor="{StaticResource ColorCopper}"
+                    CornerRadius="10"
+                    FontSize="14"
+                    Padding="16,12"
+                    HorizontalOptions="Start"
+                    Command="{Binding AddActivityCommand}" />
+
+                <BoxView HeightRequest="24" Color="Transparent" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Save button pinned at bottom -->
+        <Border
+            Grid.Row="2"
+            BackgroundColor="{StaticResource ColorCopper}"
+            StrokeThickness="0"
+            Margin="24,0,24,32"
+            Padding="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            <Button
+                Text="Save"
+                BackgroundColor="Transparent"
+                TextColor="White"
+                FontSize="17"
+                FontAttributes="Bold"
+                Padding="0,16"
+                Command="{Binding SaveCommand}" />
+        </Border>
+
+    </Grid>
+</ContentPage>

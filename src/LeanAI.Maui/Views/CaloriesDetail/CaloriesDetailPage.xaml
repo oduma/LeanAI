@@ -8,13 +8,13 @@
     x:DataType="vm:CaloriesDetailViewModel"
     BackgroundColor="{StaticResource ColorBase}">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <!-- Header -->
+        <!-- Header row: title + Save Routine + Close -->
         <Grid
             Grid.Row="0"
             Padding="24,32,24,12"
-            ColumnDefinitions="*,Auto">
+            ColumnDefinitions="*,Auto,Auto">
             <Label
                 Grid.Column="0"
                 Text="Calories Detail"
@@ -24,6 +24,19 @@
                 VerticalOptions="Center" />
             <Button
                 Grid.Column="1"
+                Text="Save Routine"
+                IsVisible="{Binding AreCheckboxesEnabled}"
+                IsEnabled="{Binding HasAnyChecked}"
+                BackgroundColor="{StaticResource ColorCopper}"
+                TextColor="White"
+                FontSize="13"
+                CornerRadius="8"
+                Padding="10,6"
+                Margin="0,0,8,0"
+                Command="{Binding SaveRoutineCommand}"
+                VerticalOptions="Center" />
+            <Button
+                Grid.Column="2"
                 Text="✕"
                 BackgroundColor="Transparent"
                 TextColor="{StaticResource ColorNickel}"
@@ -33,11 +46,41 @@
                 VerticalOptions="Center" />
         </Grid>
 
+        <!-- Current Routine switch -->
+        <Border
+            Grid.Row="1"
+            BackgroundColor="#2A2A2A"
+            StrokeThickness="0"
+            Padding="0"
+            Margin="24,0,24,8">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="10" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,Auto" Padding="16,12">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label
+                        Text="Current Routine"
+                        TextColor="{StaticResource ColorText}"
+                        FontSize="15"
+                        FontAttributes="Bold" />
+                    <Label
+                        Text="Apply your recurring items to this day"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="12" />
+                </VerticalStackLayout>
+                <Switch
+                    Grid.Column="1"
+                    IsToggled="{Binding IsRoutineActive}"
+                    OnColor="{StaticResource ColorCopper}"
+                    VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
         <!-- Scrollable content -->
-        <ScrollView Grid.Row="1">
+        <ScrollView Grid.Row="2">
             <VerticalStackLayout Padding="24,0" Spacing="16">
 
-                <!-- BMR section (formula-calculated, read-only) -->
+                <!-- BMR section (formula-calculated, read-only, no routine checkbox) -->
                 <Border
                     BackgroundColor="#2A2A2A"
                     StrokeThickness="0"
@@ -47,26 +90,35 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="10" />
                     </Border.StrokeShape>
-                    <VerticalStackLayout Padding="14,14" Spacing="4">
-                        <Label
-                            Text="BASAL METABOLIC RATE"
-                            TextColor="{StaticResource ColorNickel}"
-                            FontSize="11"
-                            CharacterSpacing="1" />
-                        <Label
-                            Text="{Binding BmrText}"
-                            TextColor="{StaticResource ColorCopper}"
-                            FontSize="26"
-                            FontAttributes="Bold" />
-                        <Label
-                            Text="Mifflin-St Jeor · Read only"
-                            TextColor="{StaticResource ColorNickel}"
-                            FontSize="11" />
-                    </VerticalStackLayout>
+                    <Grid Padding="14,14" ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label
+                                Text="BASAL METABOLIC RATE"
+                                TextColor="{StaticResource ColorNickel}"
+                                FontSize="11"
+                                CharacterSpacing="1" />
+                            <Label
+                                Text="{Binding BmrText}"
+                                TextColor="{StaticResource ColorCopper}"
+                                FontSize="26"
+                                FontAttributes="Bold" />
+                            <Label
+                                Text="Mifflin-St Jeor · Read only"
+                                TextColor="{StaticResource ColorNickel}"
+                                FontSize="11" />
+                        </VerticalStackLayout>
+                        <!-- BMR checkbox always disabled -->
+                        <CheckBox
+                            Grid.Column="1"
+                            IsChecked="False"
+                            IsEnabled="False"
+                            Color="{StaticResource ColorNickel}"
+                            VerticalOptions="Center" />
+                    </Grid>
                 </Border>
 
                 <!-- Food section header -->
-                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
                     <Label
                         Grid.Column="0"
                         Text="Food"
@@ -74,8 +126,16 @@
                         FontSize="18"
                         FontAttributes="Bold"
                         VerticalOptions="Center" />
-                    <Button
+                    <Label
                         Grid.Column="1"
+                        Text="Routine"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="11"
+                        CharacterSpacing="1"
+                        VerticalOptions="Center"
+                        Margin="0,0,4,0" />
+                    <Button
+                        Grid.Column="2"
                         Text="Edit"
                         BackgroundColor="#2A2A2A"
                         TextColor="{StaticResource ColorCopper}"
@@ -88,10 +148,10 @@
 
                 <!-- Food items list -->
                 <CollectionView
-                    ItemsSource="{Binding FoodItems}"
+                    ItemsSource="{Binding FoodItemVMs}"
                     SelectionMode="None">
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="dto:FoodLogEntryDto">
+                        <DataTemplate x:DataType="vm:CaloriesDetailFoodItemViewModel">
                             <Border
                                 BackgroundColor="#2A2A2A"
                                 StrokeThickness="0"
@@ -100,18 +160,30 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <Grid Padding="14,10" ColumnDefinitions="*,Auto">
-                                    <Label
-                                        Grid.Column="0"
-                                        Text="{Binding FoodItem}"
-                                        TextColor="{StaticResource ColorText}"
-                                        FontSize="15"
-                                        VerticalOptions="Center" />
+                                <Grid Padding="14,10" ColumnDefinitions="*,Auto,Auto">
+                                    <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                                        <Label
+                                            Text="{Binding Dto.FoodItem}"
+                                            TextColor="{StaticResource ColorText}"
+                                            FontSize="15" />
+                                        <Label
+                                            Text="{Binding Dto.Quantity}"
+                                            TextColor="{StaticResource ColorNickel}"
+                                            FontSize="12"
+                                            IsVisible="{Binding Dto.Quantity, Converter={StaticResource StringNotEmptyConverter}}" />
+                                    </VerticalStackLayout>
                                     <Label
                                         Grid.Column="1"
-                                        Text="{Binding Calories, StringFormat='{0:N0} kcal'}"
+                                        Text="{Binding Dto.Calories, StringFormat='{0:N0} kcal'}"
                                         TextColor="{StaticResource ColorNickel}"
                                         FontSize="13"
+                                        VerticalOptions="Center"
+                                        Margin="0,0,4,0" />
+                                    <CheckBox
+                                        Grid.Column="2"
+                                        IsChecked="{Binding IsRoutineChecked}"
+                                        IsEnabled="{Binding IsRoutineEnabled}"
+                                        Color="{StaticResource ColorCopper}"
                                         VerticalOptions="Center" />
                                 </Grid>
                             </Border>
@@ -146,7 +218,7 @@
                 </Border>
 
                 <!-- Activities section header -->
-                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
                     <Label
                         Grid.Column="0"
                         Text="Activities"
@@ -154,8 +226,16 @@
                         FontSize="18"
                         FontAttributes="Bold"
                         VerticalOptions="Center" />
-                    <Button
+                    <Label
                         Grid.Column="1"
+                        Text="Routine"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="11"
+                        CharacterSpacing="1"
+                        VerticalOptions="Center"
+                        Margin="0,0,4,0" />
+                    <Button
+                        Grid.Column="2"
                         Text="Edit"
                         BackgroundColor="#2A2A2A"
                         TextColor="{StaticResource ColorCopper}"
@@ -168,10 +248,10 @@
 
                 <!-- Activity items list -->
                 <CollectionView
-                    ItemsSource="{Binding ActivityItems}"
+                    ItemsSource="{Binding ActivityItemVMs}"
                     SelectionMode="None">
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="dto:ActivityCaloryLogDto">
+                        <DataTemplate x:DataType="vm:CaloriesDetailActivityItemViewModel">
                             <Border
                                 BackgroundColor="#2A2A2A"
                                 StrokeThickness="0"
@@ -180,18 +260,25 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <Grid Padding="14,10" ColumnDefinitions="*,Auto">
+                                <Grid Padding="14,10" ColumnDefinitions="*,Auto,Auto">
                                     <Label
                                         Grid.Column="0"
-                                        Text="{Binding Description}"
+                                        Text="{Binding Dto.Description}"
                                         TextColor="{StaticResource ColorText}"
                                         FontSize="15"
                                         VerticalOptions="Center" />
                                     <Label
                                         Grid.Column="1"
-                                        Text="{Binding Calories, StringFormat='-{0:N0} kcal'}"
+                                        Text="{Binding Dto.Calories, StringFormat='-{0:N0} kcal'}"
                                         TextColor="{StaticResource ColorNickel}"
                                         FontSize="13"
+                                        VerticalOptions="Center"
+                                        Margin="0,0,4,0" />
+                                    <CheckBox
+                                        Grid.Column="2"
+                                        IsChecked="{Binding IsRoutineChecked}"
+                                        IsEnabled="{Binding IsRoutineEnabled}"
+                                        Color="{StaticResource ColorCopper}"
                                         VerticalOptions="Center" />
                                 </Grid>
                             </Border>
@@ -230,7 +317,7 @@
 
         <!-- Net total at bottom -->
         <Border
-            Grid.Row="2"
+            Grid.Row="3"
             BackgroundColor="#1A1A1A"
             StrokeThickness="0"
             Margin="24,0,24,32"

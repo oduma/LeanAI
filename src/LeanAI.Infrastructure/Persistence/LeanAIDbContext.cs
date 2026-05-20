@@ -16,6 +16,8 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
     public DbSet<CaloryLog>          CaloryLogs          => Set<CaloryLog>();
     public DbSet<FoodLog>            FoodLogs            => Set<FoodLog>();
     public DbSet<CustomActivityLog>  CustomActivityLogs  => Set<CustomActivityLog>();
+    public DbSet<RoutineItem>        RoutineItems        => Set<RoutineItem>();
+    public DbSet<DailyRoutineStatus> DailyRoutineStatuses => Set<DailyRoutineStatus>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -106,6 +108,7 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.Property(e => e.Calories).IsRequired();
             entity.Property(e => e.SourceType).IsRequired();
             entity.Property(e => e.Description);
+            entity.Property(e => e.RoutineItemId);
         });
 
         modelBuilder.Entity<CustomActivityLog>(entity =>
@@ -120,6 +123,27 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                   .WithMany()
                   .HasForeignKey(e => e.CaloryLogId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RoutineItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.SourceType).IsRequired();
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.Quantity);
+            entity.Property(e => e.Calories).IsRequired();
+        });
+
+        modelBuilder.Entity<DailyRoutineStatus>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.Date).IsRequired()
+                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
+                                 s => DateOnly.Parse(s));
+            entity.HasIndex(e => e.Date).IsUnique();
+            entity.Property(e => e.IsActive).IsRequired();
         });
 
         modelBuilder.Entity<FoodLog>(entity =>

@@ -793,6 +793,144 @@ Introduce a locally-computed Basal Metabolic Rate (BMR) that factors into daily 
 
 ---
 
+## Phase 12: Introducing Routine ✅ COMPLETE
+
+### Goal
+Provide data-entry shortcuts by letting the user designate a set of recurring food and activity items as their "routine." The routine can be applied to any day with a single switch, and can be managed via a dedicated screen in Settings.
+
+---
+
+### Functional Requirements
+
+#### 12.1 Routine Checkboxes on the Calories Detail Screen
+
+- Each **food item row** and each **activity item row** in the Calories Detail screen gains a checkbox on its right side.
+- A column header **"Routine"** appears above the checkbox column (above the food items list and above the activity items list).
+- The **BMR section** has a checkbox that is always **unchecked and disabled** — it can never be added to the routine.
+- When the **Current Routine switch is ON** for the current date, all checkboxes are **unchecked and disabled**.
+- When the **Current Routine switch is OFF**, checkboxes are **enabled** and the user may select any combination of food and activity items.
+- A **"Save Routine"** button is visible in the screen header whenever the switch is OFF. It is enabled only when at least one checkbox is checked. When tapped:
+  1. The checked food items and checked activity items (with their current calorie values as a fixed snapshot) **replace** the entire contents of the Routine store.
+  2. All checkboxes are reset to unchecked.
+
+#### 12.2 Current Routine Switch
+
+- A **"Current Routine"** switch appears near the top of the Calories Detail screen (below the header, above the BMR/Food sections).
+- **Default state:** OFF.
+- The switch state **per date** is persisted in a new `DailyRoutineStatuses` table.
+- On screen open, the switch is loaded from the DB for the current date.
+- **Toggling ON:**
+  - All current Routine store items are immediately copied to the current date:
+    - Food routine items → new `FoodLog` + `CaloryLog` (SourceType = `"food"`) entries, with `CaloryLog.RoutineItemId` set to the source `RoutineItem.Id`.
+    - Activity routine items → new `CustomActivityLog` + `CaloryLog` (SourceType = `"activity"`) entries, with `CaloryLog.RoutineItemId` set.
+  - All Routine checkboxes are set to disabled.
+  - If the Routine store is empty, toggling ON adds nothing (no-op on data, switch state still saved).
+- **Toggling OFF:**
+  - All `CaloryLog` entries for the date whose `RoutineItemId IS NOT NULL` are inspected:
+    - For food items: if `CaloryLog.Calories`, `FoodLog.FoodItem`, and `FoodLog.Quantity` all match the original `RoutineItem` values → **delete** the CaloryLog (cascades to FoodLog).
+    - For activity items: if `CaloryLog.Calories` and `CaloryLog.Description` match the original `RoutineItem` values → **delete** the CaloryLog (cascades to CustomActivityLog).
+    - **"Modified"** means any field has changed from its original value at the time of routine application. Modified items are kept.
+  - All Routine checkboxes become enabled.
+
+#### 12.3 Routine Management Screen (Settings → Routines)
+
+- A new **"Routines"** action row is added to the **GENERIC SETTINGS** section of the Settings screen (below the "Use BMR" toggle).
+- Tapping it navigates modally to a new **Routine Management Screen**.
+- The screen is a dedicated `RoutineManagementPage` (not a re-use of CaloriesDetailPage).
+
+**Screen layout:**
+- No BMR section.
+- No date picker.
+- Two sections: **Food** and **Activities**.
+- Each item row shows: Checkbox (always ticked initially) | Name / Description | Quantity (food only) | Calories (read-only label, "—" if not yet evaluated).
+- All existing routine items are shown pre-checked.
+- **"Add Food Item"** button at the bottom of the Food section — appends a new editable food row (name blank, quantity blank, calories "—"), pre-checked.
+- **"Add Activity"** button at the bottom of the Activities section — appends a new editable activity row (description blank, calories "—"), pre-checked.
+- **"Save"** button: 
+  1. Collects all **checked** items.
+  2. For any checked items where calories = 0 / "—":
+     - Food items → `RecalculateCaloriesCommand` (batch Gemini text call).
+     - Activity items → `EstimateActivityCaloriesCommand` (batch Gemini text call).
+  3. Deletes all existing RoutineItems and inserts the checked items with their (now filled) calories.
+  4. Dismisses the screen (returns to Settings).
+- **"Cancel"** button: dismisses without saving.
+
+---
+
+### Technical Specifications
+
+#### New Domain Entities (FoodTracking bounded context)
+
+| Entity | Fields |
+|--------|--------|
+| `RoutineItem` | `Id` (Guid PK), `SourceType` (string: `"food"` or `"activity"`), `Description` (string), `Quantity` (string?), `Calories` (double) |
+| `DailyRoutineStatus` | `Id` (Guid PK), `Date` (DateOnly), `IsActive` (bool) |
+
+#### CaloryLog Schema Change
+
+`CaloryLog` gains a nullable column **`Guid? RoutineItemId`** — stores the `RoutineItem.Id` that produced this entry when the routine is applied. Not a real FK constraint (treated as a bare Guid); set to `null` for manually-created entries. When `SaveFoodLogCommand` or `SaveRunActivitiesCommand` performs a full replace, the new CaloryLogs do not carry `RoutineItemId`, effectively breaking the routine link and marking those items as "manually owned."
+
+#### New Repository Interface: `IRoutineRepository`
+
+```
+GetAllAsync()                            → IReadOnlyList<RoutineItem>
+ReplaceAllAsync(items)                   → void (delete all, insert provided)
+GetIsActiveForDateAsync(date)            → bool
+SetIsActiveForDateAsync(date, isActive)  → void (upsert)
+```
+
+#### New Application Commands / Queries
+
+| Name | Description |
+|------|-------------|
+| `GetRoutineItemsQuery` | Returns `IReadOnlyList<RoutineItemDto>` of all items in the Routine store. |
+| `GetRoutineStatusForDateQuery(DateOnly)` | Returns `bool` — whether the routine switch is ON for the date. |
+| `SaveRoutineFromDayCommand(DateOnly, IReadOnlyList<RoutineItemDto>)` | Replaces the entire Routine store with the provided items (calories already resolved). |
+| `ApplyRoutineForDateCommand(DateOnly)` | Copies Routine store items to the date (creates FoodLog/CaloryLog/CustomActivityLog with RoutineItemId set). Idempotent: if no items, no-op. |
+| `RemoveUnmodifiedRoutineItemsForDateCommand(DateOnly)` | Finds CaloryLogs with RoutineItemId for the date; deletes those whose values still match the original RoutineItem. |
+| `SaveRoutineItemsCommand(IReadOnlyList<RoutineItemDto>)` | Used by RoutineManagementPage; same effect as `SaveRoutineFromDayCommand` but with Gemini evaluation already done upstream in the ViewModel before sending. |
+
+#### EF Core Migration
+
+`Add_Routine_Tables`:
+- `RoutineItems` table: `Id` (Guid), `SourceType` (TEXT NOT NULL), `Description` (TEXT NOT NULL), `Quantity` (TEXT NULL), `Calories` (REAL NOT NULL).
+- `DailyRoutineStatuses` table: `Id` (Guid), `Date` (TEXT NOT NULL), `IsActive` (INTEGER NOT NULL).
+- `CaloryLogs` table: add `RoutineItemId` (TEXT NULL, bare Guid column, no FK constraint).
+
+#### Presentation Changes
+
+| Area | Change |
+|------|--------|
+| `CaloriesDetailFoodItemViewModel` | New wrapper: `FoodLogEntryDto Dto`, `bool IsRoutineChecked` (observable), `bool IsRoutineEnabled` (computed). |
+| `CaloriesDetailActivityItemViewModel` | New wrapper: `ActivityCaloryLogDto Dto`, `bool IsRoutineChecked`, `bool IsRoutineEnabled`. |
+| `CaloriesDetailViewModel` | Add `IsRoutineActive` (switch), `AreCheckboxesEnabled` (= !IsRoutineActive), `HasAnyChecked` (for CanExecute), `SaveRoutineCommand`, `ToggleRoutineCommand`; change collections from DTO types to wrapper VM types. |
+| `CaloriesDetailPage.xaml` | Add Current Routine switch below header; add Routine column header + CheckBox to each item DataTemplate; add Save Routine button to header (visible when switch OFF). |
+| `RoutineManagementPage.xaml` + `RoutineManagementViewModel` | New screen with Food/Activity sections, checkboxes, add buttons, Save/Cancel. |
+| `SettingsPage.xaml` | Add "Routines" action row under GENERIC SETTINGS (below Use BMR). |
+| `SettingsViewModel` | Add `OpenRoutinesCommand` navigating modally to `RoutineManagementPage`. |
+
+### Corrections & Clarifications (implemented during Phase 12)
+
+- **`CaloriesTotalChangedMessage` for tile refresh.** Toggling the Current Routine switch ON/OFF writes/deletes `CaloryLog` entries but `LogViewModel` only subscribed to `FoodSavedMessage` and `RunSavedMessage` for tile refresh. A new `CaloriesTotalChangedMessage(DateOnly Date)` was added to `src/LeanAI.Maui/Messages/`. `CaloriesDetailViewModel.HandleRoutineToggleAsync` sends it via `WeakReferenceMessenger` after `LoadAsync` completes. `LogViewModel` implements `IRecipient<CaloriesTotalChangedMessage>` and calls `RefreshCalorieTileAsync(message.Date)` on the main thread — a targeted refresh that updates the tile without triggering a full log reload.
+- **Migration command corrected.** The `--startup-project src/LeanAI.Maui` flag causes a `ResolvePackageAssets` error when MAUI targets multiple frameworks. Migration was run without `--startup-project` since `LeanAI.Infrastructure` is self-contained with `Microsoft.EntityFrameworkCore.Design`: `dotnet ef migrations add Add_Routine_Tables --project src/LeanAI.Infrastructure`.
+- **`SaveRoutineItemsCommand` not implemented separately.** The Routine Management screen Save uses `SaveRoutineFromDayCommand` directly (same handler, same behavior). No separate `SaveRoutineItemsCommand` is needed.
+
+#### Definition of Done
+
+- ✅ Routine checkboxes appear on CaloriesDetail for food and activity items; BMR checkbox is always disabled.
+- ✅ Checking items and tapping "Save Routine" stores them in the RoutineItems table and resets checkboxes.
+- ✅ Current Routine switch is persisted per day; toggling ON adds routine copies (with RoutineItemId); toggling OFF removes unmodified copies.
+- ✅ Toggling the routine switch refreshes the Calories tile on the Daily Log screen via `CaloriesTotalChangedMessage`.
+- ✅ CaloryLogs created by FoodReview/RunReview full-replace do not carry RoutineItemId (unaffected by routine cleanup).
+- ✅ Settings → Routines → RoutineManagementPage shows current routine items pre-checked.
+- ✅ New items without calories are evaluated via Gemini before Save.
+- ✅ Save on RoutineManagementPage replaces the routine store with checked items only.
+- ✅ EF Core migration applies cleanly — no data loss to existing tables.
+- ✅ All new Application command/query handlers tested at 100% branch coverage.
+- ✅ `dotnet build` → 0 errors. `dotnet test` → all tests green.
+
+---
+
 ## Open Issues
 
 ### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED

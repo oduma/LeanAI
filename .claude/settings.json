@@ -11,7 +11,9 @@
       "Skill(claude-api:*)",
       "Bash(Get-ChildItem \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\" -Recurse)",
       "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\\\\mipmap-anydpi-v33\" -Force)",
-      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\\\\drawable\" -Force)"
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Platforms\\\\Android\\\\Resources\\\\drawable\" -Force)",
+      "Skill(complete)",
+      "Skill(complete:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\scien\\.claude\\projects\\c--Code-LeanAI\\memory"

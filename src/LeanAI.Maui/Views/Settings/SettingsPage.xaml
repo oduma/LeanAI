@@ -81,6 +81,43 @@
                 </Grid>
             </Border>
 
+            <!-- Generic Settings card — Routines -->
+            <Border
+                BackgroundColor="#2A2A2A"
+                StrokeThickness="0"
+                Padding="0"
+                Margin="0,8,0,0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid
+                    Padding="16,14"
+                    ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout
+                        Grid.Column="0"
+                        Spacing="3">
+                        <Label
+                            Text="Routines"
+                            TextColor="{StaticResource ColorText}"
+                            FontSize="16"
+                            FontAttributes="Bold" />
+                        <Label
+                            Text="Manage your recurring food and activity items"
+                            TextColor="{StaticResource ColorNickel}"
+                            FontSize="13" />
+                    </VerticalStackLayout>
+                    <Label
+                        Grid.Column="1"
+                        Text="›"
+                        TextColor="{StaticResource ColorNickel}"
+                        FontSize="22"
+                        VerticalOptions="Center" />
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenRoutinesCommand}" />
+                    </Grid.GestureRecognizers>
+                </Grid>
+            </Border>
+
             <!-- AI CONFIGURATION section header -->
             <Label
                 Text="AI CONFIGURATION"

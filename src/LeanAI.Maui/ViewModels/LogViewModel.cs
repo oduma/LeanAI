@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace LeanAI.Maui.ViewModels;
 
-public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessage>, IRecipient<RunSavedMessage>
+public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessage>, IRecipient<RunSavedMessage>, IRecipient<CaloriesTotalChangedMessage>
 {
     private readonly IMediator _mediator;
 
@@ -72,6 +72,7 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
         _runImportState  = runImportState;
         WeakReferenceMessenger.Default.Register<FoodSavedMessage>(this);
         WeakReferenceMessenger.Default.Register<RunSavedMessage>(this);
+        WeakReferenceMessenger.Default.Register<CaloriesTotalChangedMessage>(this);
     }
 
     void IRecipient<FoodSavedMessage>.Receive(FoodSavedMessage message)
@@ -79,6 +80,9 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
 
     void IRecipient<RunSavedMessage>.Receive(RunSavedMessage message)
         => MainThread.BeginInvokeOnMainThread(() => _ = LoadCoreAsync(message.Date));
+
+    void IRecipient<CaloriesTotalChangedMessage>.Receive(CaloriesTotalChangedMessage message)
+        => MainThread.BeginInvokeOnMainThread(() => _ = RefreshCalorieTileAsync(message.Date));
 
     partial void OnWeightDisplayTextChanged(string value)
     {

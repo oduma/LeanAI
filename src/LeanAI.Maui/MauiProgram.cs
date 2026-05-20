@@ -10,6 +10,7 @@ using LeanAI.Maui.Views.CaloriesDetail;
 using LeanAI.Maui.Views.Import;
 using LeanAI.Maui.Views.FoodReview;
 using LeanAI.Maui.Views.Log;
+using LeanAI.Maui.Views.Routine;
 using LeanAI.Maui.Views.RunReview;
 using LeanAI.Maui.Views.Settings;
 using LeanAI.Maui.Views.Calendar;
@@ -54,6 +55,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FoodReviewPage>();
         builder.Services.AddTransient<RunReviewPage>();
         builder.Services.AddTransient<CaloriesDetailPage>();
+        builder.Services.AddTransient<RoutineManagementPage>();
 
         // ViewModels
         builder.Services.AddTransient<WizardViewModel>();
@@ -67,6 +69,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RunReviewViewModel>();
         builder.Services.AddTransient<RunRowViewModel>();
         builder.Services.AddTransient<CaloriesDetailViewModel>();
+        builder.Services.AddTransient<RoutineManagementViewModel>();
 
         // Platform services
         builder.Services.AddSingleton<IApiKeyStorage, SecureStorageApiKeyStorage>();
