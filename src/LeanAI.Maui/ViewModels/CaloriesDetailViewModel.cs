@@ -2,13 +2,13 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using LeanAI.Application.FoodTracking.Commands.ApplyRoutineForDate;
-using LeanAI.Application.FoodTracking.Commands.RemoveUnmodifiedRoutineItems;
-using LeanAI.Application.FoodTracking.Commands.SaveRoutineFromDay;
-using LeanAI.Application.FoodTracking.DTOs;
-using LeanAI.Application.FoodTracking.Queries.GetActivityCaloriesForDate;
+using LeanAI.Application.EnergyTracking.Queries.GetActivityCaloriesForDate;
 using LeanAI.Application.FoodTracking.Queries.GetFoodLogForDate;
-using LeanAI.Application.FoodTracking.Queries.GetRoutineStatusForDate;
+using LeanAI.Application.Routine.Commands.ApplyRoutineForDate;
+using LeanAI.Application.Routine.Commands.RemoveUnmodifiedRoutineItems;
+using LeanAI.Application.Routine.Commands.SaveRoutineFromDay;
+using LeanAI.Application.Routine.DTOs;
+using LeanAI.Application.Routine.Queries.GetRoutineStatusForDate;
 using LeanAI.Application.WeightManagement.Queries.GetBmrForDate;
 using LeanAI.Maui.Messages;
 using LeanAI.Maui.Views.FoodReview;
@@ -115,7 +115,6 @@ public partial class CaloriesDetailViewModel(IMediator mediator, IServiceProvide
         _isTogglingRoutine = false;
         OnPropertyChanged(nameof(AreCheckboxesEnabled));
 
-        // Subscribe to checkbox changes
         foreach (var vm in FoodItemVMs)
             vm.PropertyChanged += (_, _) => RefreshHasAnyChecked();
         foreach (var vm in ActivityItemVMs)
@@ -131,15 +130,17 @@ public partial class CaloriesDetailViewModel(IMediator mediator, IServiceProvide
     [RelayCommand(CanExecute = nameof(CanSaveRoutine))]
     private async Task SaveRoutineAsync()
     {
-        var items = FoodItemVMs
+        var foodItems = FoodItemVMs
             .Where(vm => vm.IsRoutineChecked)
-            .Select(vm => new RoutineItemDto(Guid.Empty, "food", vm.Dto.FoodItem, vm.Dto.Quantity, vm.Dto.Calories))
-            .Concat(ActivityItemVMs
-                .Where(vm => vm.IsRoutineChecked)
-                .Select(vm => new RoutineItemDto(Guid.Empty, "activity", vm.Dto.Description ?? string.Empty, null, vm.Dto.Calories)))
+            .Select(vm => new RoutineFoodItemDto(Guid.Empty, vm.Dto.FoodItem, vm.Dto.Quantity, vm.Dto.Calories))
             .ToList();
 
-        await mediator.Send(new SaveRoutineFromDayCommand(items));
+        var activityItems = ActivityItemVMs
+            .Where(vm => vm.IsRoutineChecked)
+            .Select(vm => new RoutineActivityItemDto(Guid.Empty, vm.Dto.Description ?? string.Empty, vm.Dto.Calories))
+            .ToList();
+
+        await mediator.Send(new SaveRoutineFromDayCommand(foodItems, activityItems));
 
         foreach (var vm in FoodItemVMs)     vm.IsRoutineChecked = false;
         foreach (var vm in ActivityItemVMs) vm.IsRoutineChecked = false;

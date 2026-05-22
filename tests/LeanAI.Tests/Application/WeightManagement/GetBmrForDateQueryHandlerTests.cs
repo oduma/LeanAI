@@ -1,14 +1,14 @@
 using FluentAssertions;
 using LeanAI.Application.WeightManagement.Queries.GetBmrForDate;
-using LeanAI.Domain.FoodTracking.Entities;
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Entities;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using Moq;
 
 namespace LeanAI.Tests.Application.WeightManagement;
 
 public class GetBmrForDateQueryHandlerTests
 {
-    private readonly Mock<ICaloryLogRepository> _repoMock = new();
+    private readonly Mock<IEnergyLogRepository> _repoMock = new();
     private readonly GetBmrForDateQueryHandler  _handler;
 
     private static readonly DateOnly TestDate = new(2026, 5, 20);
@@ -23,7 +23,7 @@ public class GetBmrForDateQueryHandlerTests
     {
         _repoMock
             .Setup(r => r.GetBmrForDateAsync(TestDate, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CaloryLog { Date = TestDate, Calories = 1738.75, SourceType = "bmr" });
+            .ReturnsAsync(new EnergyLog { Date = TestDate, Calories = 1738.75, SourceType = "bmr" });
 
         var result = await _handler.Handle(new GetBmrForDateQuery(TestDate), CancellationToken.None);
 
@@ -35,7 +35,7 @@ public class GetBmrForDateQueryHandlerTests
     {
         _repoMock
             .Setup(r => r.GetBmrForDateAsync(TestDate, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CaloryLog?)null);
+            .ReturnsAsync((EnergyLog?)null);
 
         var result = await _handler.Handle(new GetBmrForDateQuery(TestDate), CancellationToken.None);
 

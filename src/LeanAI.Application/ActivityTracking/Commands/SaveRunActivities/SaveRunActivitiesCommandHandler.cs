@@ -1,31 +1,34 @@
 using LeanAI.Domain.ActivityTracking.Entities;
 using LeanAI.Domain.ActivityTracking.Interfaces;
-using LeanAI.Domain.FoodTracking.Entities;
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using MediatR;
 
 namespace LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
 
 public sealed class SaveRunActivitiesCommandHandler(
-    ICaloryLogRepository         caloryLogRepo,
+    IEnergyLogRepository         energyRepo,
     ICustomActivityLogRepository customActivityLogRepo,
     IActivityLogRepository       activityLogRepo)
     : IRequestHandler<SaveRunActivitiesCommand>
 {
     public async Task Handle(SaveRunActivitiesCommand request, CancellationToken cancellationToken)
     {
-        // In edit mode replace all activity calories for the day; in import mode add alongside existing entries
         if (!request.IsImportMode)
-            await caloryLogRepo.DeleteActivityCaloriesForDateAsync(request.Date, cancellationToken);
+        {
+            // Explicit cascade: delete CustomActivityLogs linked to activity EnergyLogs first
+            var existingActivityLogs = await energyRepo.GetActivityCaloriesForDateAsync(request.Date, cancellationToken);
+            var existingIds          = existingActivityLogs.Select(el => el.Id).ToList();
+            await customActivityLogRepo.DeleteByEnergyLogIdsAsync(existingIds, cancellationToken);
+            await energyRepo.DeleteActivityCaloriesForDateAsync(request.Date, cancellationToken);
+        }
 
         foreach (var row in request.Rows)
         {
-            var caloryLog = await caloryLogRepo.AddActivityAsync(
+            var energyLog = await energyRepo.AddActivityAsync(
                 request.Date, row.Calories, row.ActivityText, cancellationToken);
 
             if (row.IsRunRow && request.IsImportMode && row.Metrics is not null)
             {
-                // Save individual run metrics to ActivityLog
                 var logs = row.Metrics.Select(m => new ActivityLog
                 {
                     Date          = request.Date,
@@ -38,12 +41,11 @@ public sealed class SaveRunActivitiesCommandHandler(
             }
             else if (!row.IsRunRow)
             {
-                // Custom activity — record in CustomActivityLog
                 await customActivityLogRepo.AddAsync(new CustomActivityLog
                 {
                     Date        = request.Date,
                     Description = row.ActivityText,
-                    CaloryLogId = caloryLog.Id
+                    EnergyLogId = energyLog.Id
                 }, cancellationToken);
             }
         }

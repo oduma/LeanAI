@@ -1,9 +1,9 @@
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using MediatR;
 
 namespace LeanAI.Application.WeightManagement.Queries.GetBmrForDate;
 
-public sealed class GetBmrForDateQueryHandler(ICaloryLogRepository repo)
+public sealed class GetBmrForDateQueryHandler(IEnergyLogRepository repo)
     : IRequestHandler<GetBmrForDateQuery, double?>
 {
     public async Task<double?> Handle(GetBmrForDateQuery request, CancellationToken cancellationToken)

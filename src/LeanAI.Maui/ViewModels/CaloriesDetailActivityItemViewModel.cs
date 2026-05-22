@@ -1,11 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using LeanAI.Application.FoodTracking.DTOs;
+using LeanAI.Application.EnergyTracking.DTOs;
 
 namespace LeanAI.Maui.ViewModels;
 
-public partial class CaloriesDetailActivityItemViewModel(ActivityCaloryLogDto dto) : ObservableObject
+public partial class CaloriesDetailActivityItemViewModel(ActivityEnergyLogDto dto) : ObservableObject
 {
-    public ActivityCaloryLogDto Dto { get; } = dto;
+    public ActivityEnergyLogDto Dto { get; } = dto;
 
     [ObservableProperty] private bool _isRoutineChecked;
     [ObservableProperty] private bool _isRoutineEnabled = true;

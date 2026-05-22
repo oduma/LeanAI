@@ -10,6 +10,7 @@ Additional important documents to read:
 - [Technical Standards](docs/requirements/TECHNICAL_STANDARDS.md)
 - [Functional Requirements](docs/requirements/FUNCTIONAL_REQUIREMENTS.md)
 - [UI-UX Specifications and Requirements](docs/requirements/UI_UX-SPECS.md)
+- [Domain-Driven Design: Bounded Contexts](docs/requirements/DDD.md)
 
 ## Tech Stack
 - Framework: .NET 10 MAUI

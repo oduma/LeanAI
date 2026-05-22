@@ -2,15 +2,19 @@ using LeanAI.Application.ActivityTracking.Services;
 using LeanAI.Application.FoodTracking.Services;
 using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Domain.ActivityTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.Routine.Interfaces;
 using LeanAI.Domain.WeightManagement.Entities;
 using LeanAI.Domain.WeightManagement.Interfaces;
 using LeanAI.Infrastructure.ActivityTracking.Repositories;
 using LeanAI.Infrastructure.ActivityTracking.Services;
+using LeanAI.Infrastructure.EnergyTracking.Repositories;
 using LeanAI.Infrastructure.FoodTracking.Repositories;
 using LeanAI.Infrastructure.FoodTracking.Services;
 using LeanAI.Infrastructure.Persistence;
 using LeanAI.Infrastructure.Repositories;
+using LeanAI.Infrastructure.Routine.Repositories;
 using LeanAI.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -51,7 +55,7 @@ public static class DependencyInjection
         services.AddTransient<IActivityCaloriesEstimationService, GeminiActivityCaloriesEstimationService>();
         services.AddSingleton<RunImportStateService>();
 
-        services.AddScoped<ICaloryLogRepository, CaloryLogRepository>();
+        services.AddScoped<IEnergyLogRepository, EnergyLogRepository>();
         services.AddScoped<IFoodLogRepository, FoodLogRepository>();
         services.AddScoped<ICustomActivityLogRepository, CustomActivityLogRepository>();
         services.AddScoped<IRoutineRepository, RoutineRepository>();

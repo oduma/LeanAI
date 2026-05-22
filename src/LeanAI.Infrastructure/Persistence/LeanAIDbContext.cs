@@ -1,5 +1,7 @@
 using LeanAI.Domain.ActivityTracking.Entities;
+using LeanAI.Domain.EnergyTracking.Entities;
 using LeanAI.Domain.FoodTracking.Entities;
+using LeanAI.Domain.Routine.Entities;
 using LeanAI.Domain.WeightManagement.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,17 +9,18 @@ namespace LeanAI.Infrastructure.Persistence;
 
 public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbContext(options)
 {
-    public DbSet<UserProfile>       UserProfiles       => Set<UserProfile>();
-    public DbSet<DailyIdealWeight>  DailyIdealWeights  => Set<DailyIdealWeight>();
-    public DbSet<DailyActualWeight> DailyActualWeights => Set<DailyActualWeight>();
-    public DbSet<AppSettings>       AppSettings        => Set<AppSettings>();
-    public DbSet<WeeklyAverage>     WeeklyAverages     => Set<WeeklyAverage>();
-    public DbSet<ActivityLog>       ActivityLogs       => Set<ActivityLog>();
-    public DbSet<CaloryLog>          CaloryLogs          => Set<CaloryLog>();
-    public DbSet<FoodLog>            FoodLogs            => Set<FoodLog>();
-    public DbSet<CustomActivityLog>  CustomActivityLogs  => Set<CustomActivityLog>();
-    public DbSet<RoutineItem>        RoutineItems        => Set<RoutineItem>();
-    public DbSet<DailyRoutineStatus> DailyRoutineStatuses => Set<DailyRoutineStatus>();
+    public DbSet<UserProfile>         UserProfiles          => Set<UserProfile>();
+    public DbSet<DailyIdealWeight>    DailyIdealWeights     => Set<DailyIdealWeight>();
+    public DbSet<DailyActualWeight>   DailyActualWeights    => Set<DailyActualWeight>();
+    public DbSet<AppSettings>         AppSettings           => Set<AppSettings>();
+    public DbSet<WeeklyAverage>       WeeklyAverages        => Set<WeeklyAverage>();
+    public DbSet<ActivityLog>         ActivityLogs          => Set<ActivityLog>();
+    public DbSet<EnergyLog>           EnergyLogs            => Set<EnergyLog>();
+    public DbSet<FoodLog>             FoodLogs              => Set<FoodLog>();
+    public DbSet<CustomActivityLog>   CustomActivityLogs    => Set<CustomActivityLog>();
+    public DbSet<RoutineFoodItem>     RoutineFoodItems      => Set<RoutineFoodItem>();
+    public DbSet<RoutineActivityItem> RoutineActivityItems  => Set<RoutineActivityItem>();
+    public DbSet<DailyRoutineStatus>  DailyRoutineStatuses  => Set<DailyRoutineStatus>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,8 +101,9 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.Property(e => e.Unit).IsRequired();
         });
 
-        modelBuilder.Entity<CaloryLog>(entity =>
+        modelBuilder.Entity<EnergyLog>(entity =>
         {
+            entity.ToTable("EnergyLogs");
             entity.HasKey(e => e.Id);
             entity.Ignore(e => e.DomainEvents);
             entity.Property(e => e.Date).IsRequired()
@@ -111,6 +115,18 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
             entity.Property(e => e.RoutineItemId);
         });
 
+        modelBuilder.Entity<FoodLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.Date).IsRequired()
+                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
+                                 s => DateOnly.Parse(s));
+            entity.Property(e => e.FoodItem).IsRequired();
+            entity.Property(e => e.Quantity).IsRequired();
+            entity.Property(e => e.EnergyLogId).IsRequired();
+        });
+
         modelBuilder.Entity<CustomActivityLog>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -119,19 +135,23 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                   .HasConversion(d => d.ToString("yyyy-MM-dd"),
                                  s => DateOnly.Parse(s));
             entity.Property(e => e.Description).IsRequired();
-            entity.HasOne(e => e.CaloryLog)
-                  .WithMany()
-                  .HasForeignKey(e => e.CaloryLogId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.EnergyLogId).IsRequired();
         });
 
-        modelBuilder.Entity<RoutineItem>(entity =>
+        modelBuilder.Entity<RoutineFoodItem>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Ignore(e => e.DomainEvents);
-            entity.Property(e => e.SourceType).IsRequired();
             entity.Property(e => e.Description).IsRequired();
             entity.Property(e => e.Quantity);
+            entity.Property(e => e.Calories).IsRequired();
+        });
+
+        modelBuilder.Entity<RoutineActivityItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.DomainEvents);
+            entity.Property(e => e.Description).IsRequired();
             entity.Property(e => e.Calories).IsRequired();
         });
 
@@ -144,21 +164,6 @@ public class LeanAIDbContext(DbContextOptions<LeanAIDbContext> options) : DbCont
                                  s => DateOnly.Parse(s));
             entity.HasIndex(e => e.Date).IsUnique();
             entity.Property(e => e.IsActive).IsRequired();
-        });
-
-        modelBuilder.Entity<FoodLog>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Ignore(e => e.DomainEvents);
-            entity.Property(e => e.Date).IsRequired()
-                  .HasConversion(d => d.ToString("yyyy-MM-dd"),
-                                 s => DateOnly.Parse(s));
-            entity.Property(e => e.FoodItem).IsRequired();
-            entity.Property(e => e.Quantity).IsRequired();
-            entity.HasOne(e => e.CaloryLog)
-                  .WithMany()
-                  .HasForeignKey(e => e.CaloryLogId)
-                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

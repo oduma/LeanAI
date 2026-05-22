@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using LeanAI.Application.ActivityTracking.Commands.EstimateActivityCalories;
 using LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
 using LeanAI.Application.ActivityTracking.DTOs;
-using LeanAI.Application.FoodTracking.Queries.GetActivityCaloriesForDate;
+using LeanAI.Application.EnergyTracking.Queries.GetActivityCaloriesForDate;
 using LeanAI.Application.WeightManagement.Queries.GetUserProfile;
 using LeanAI.Infrastructure.ActivityTracking.Services;
 using LeanAI.Maui.Messages;

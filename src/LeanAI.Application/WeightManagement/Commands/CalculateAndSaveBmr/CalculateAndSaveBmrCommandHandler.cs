@@ -1,4 +1,4 @@
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using LeanAI.Domain.WeightManagement.Enums;
 using LeanAI.Domain.WeightManagement.Interfaces;
 using MediatR;
@@ -6,9 +6,9 @@ using MediatR;
 namespace LeanAI.Application.WeightManagement.Commands.CalculateAndSaveBmr;
 
 public sealed class CalculateAndSaveBmrCommandHandler(
-    IAppSettingsRepository      settingsRepository,
-    IUserProfileRepository      profileRepository,
-    ICaloryLogRepository        caloryLogRepository)
+    IAppSettingsRepository settingsRepository,
+    IUserProfileRepository profileRepository,
+    IEnergyLogRepository   energyLogRepository)
     : IRequestHandler<CalculateAndSaveBmrCommand>
 {
     public async Task Handle(CalculateAndSaveBmrCommand request, CancellationToken cancellationToken)
@@ -24,6 +24,6 @@ public sealed class CalculateAndSaveBmrCommandHandler(
                 - (5    * profile.Age.Value)
                 + (profile.Gender.Value == Gender.Male ? -5 : -161);
 
-        await caloryLogRepository.UpsertBmrAsync(request.Date, bmr, cancellationToken);
+        await energyLogRepository.UpsertBmrAsync(request.Date, bmr, cancellationToken);
     }
 }

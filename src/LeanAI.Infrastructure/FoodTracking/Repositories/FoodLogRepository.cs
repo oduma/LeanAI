@@ -9,7 +9,6 @@ internal sealed class FoodLogRepository(LeanAIDbContext context) : IFoodLogRepos
 {
     public async Task<IReadOnlyList<FoodLog>> GetByDateAsync(DateOnly date, CancellationToken ct = default)
         => await context.FoodLogs
-                        .Include(fl => fl.CaloryLog)
                         .Where(fl => fl.Date == date)
                         .ToListAsync(ct);
 
@@ -19,24 +18,31 @@ internal sealed class FoodLogRepository(LeanAIDbContext context) : IFoodLogRepos
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<FoodLog?> GetByCaloryLogIdAsync(Guid caloryLogId, CancellationToken ct = default)
+    public async Task<FoodLog?> GetByEnergyLogIdAsync(Guid energyLogId, CancellationToken ct = default)
         => await context.FoodLogs
-                        .Include(fl => fl.CaloryLog)
-                        .Where(fl => fl.CaloryLogId == caloryLogId)
+                        .Where(fl => fl.EnergyLogId == energyLogId)
                         .FirstOrDefaultAsync(ct);
 
     public async Task DeleteByDateAsync(DateOnly date, CancellationToken ct = default)
     {
         var logs = await context.FoodLogs
-                                .Include(fl => fl.CaloryLog)
                                 .Where(fl => fl.Date == date)
                                 .ToListAsync(ct);
         if (logs.Count == 0) return;
-
-        // FoodLog → CaloryLog FK cascades parent→child (CaloryLog deletion removes FoodLog),
-        // so deleting FoodLog alone leaves CaloryLog orphaned. Remove both together.
         context.FoodLogs.RemoveRange(logs);
-        context.CaloryLogs.RemoveRange(logs.Select(fl => fl.CaloryLog));
         await context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteByEnergyLogIdsAsync(IReadOnlyList<Guid> energyLogIds, CancellationToken ct = default)
+    {
+        if (energyLogIds.Count == 0) return;
+        var logs = await context.FoodLogs
+                                .Where(fl => energyLogIds.Contains(fl.EnergyLogId))
+                                .ToListAsync(ct);
+        if (logs.Count > 0)
+        {
+            context.FoodLogs.RemoveRange(logs);
+            await context.SaveChangesAsync(ct);
+        }
     }
 }

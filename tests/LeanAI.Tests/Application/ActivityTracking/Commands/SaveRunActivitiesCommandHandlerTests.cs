@@ -3,18 +3,18 @@ using LeanAI.Application.ActivityTracking.Commands.SaveRunActivities;
 using LeanAI.Application.ActivityTracking.DTOs;
 using LeanAI.Domain.ActivityTracking.Entities;
 using LeanAI.Domain.ActivityTracking.Interfaces;
-using LeanAI.Domain.FoodTracking.Entities;
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Entities;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using Moq;
 
 namespace LeanAI.Tests.Application.ActivityTracking.Commands;
 
 public class SaveRunActivitiesCommandHandlerTests
 {
-    private readonly Mock<ICaloryLogRepository>         _caloryRepoMock         = new();
-    private readonly Mock<ICustomActivityLogRepository> _customActivityRepoMock = new();
-    private readonly Mock<IActivityLogRepository>       _activityRepoMock       = new();
-    private readonly SaveRunActivitiesCommandHandler    _handler;
+    private readonly Mock<IEnergyLogRepository>          _energyRepoMock         = new();
+    private readonly Mock<ICustomActivityLogRepository>  _customActivityRepoMock = new();
+    private readonly Mock<IActivityLogRepository>        _activityRepoMock       = new();
+    private readonly SaveRunActivitiesCommandHandler     _handler;
 
     private static readonly DateOnly TestDate = new(2026, 5, 18);
 
@@ -28,17 +28,25 @@ public class SaveRunActivitiesCommandHandlerTests
     public SaveRunActivitiesCommandHandlerTests()
     {
         _handler = new SaveRunActivitiesCommandHandler(
-            _caloryRepoMock.Object,
+            _energyRepoMock.Object,
             _customActivityRepoMock.Object,
             _activityRepoMock.Object);
 
-        _caloryRepoMock
+        _energyRepoMock
+            .Setup(r => r.GetActivityCaloriesForDateAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _energyRepoMock
             .Setup(r => r.DeleteActivityCaloriesForDateAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _caloryRepoMock
+        _customActivityRepoMock
+            .Setup(r => r.DeleteByEnergyLogIdsAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _energyRepoMock
             .Setup(r => r.AddActivityAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DateOnly d, double cal, string desc, CancellationToken _) => new CaloryLog
+            .ReturnsAsync((DateOnly d, double cal, string desc, CancellationToken _) => new EnergyLog
             {
                 Date        = d,
                 Calories    = cal,
@@ -56,13 +64,19 @@ public class SaveRunActivitiesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_EditMode_DeletesActivityCaloriesFirst()
+    public async Task Handle_EditMode_DeletesActivityCaloriesWithExplicitCascade()
     {
         var cmd = new SaveRunActivitiesCommand(TestDate, [], IsImportMode: false);
 
         await _handler.Handle(cmd, CancellationToken.None);
 
-        _caloryRepoMock.Verify(
+        _energyRepoMock.Verify(
+            r => r.GetActivityCaloriesForDateAsync(TestDate, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _customActivityRepoMock.Verify(
+            r => r.DeleteByEnergyLogIdsAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _energyRepoMock.Verify(
             r => r.DeleteActivityCaloriesForDateAsync(TestDate, It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -74,8 +88,11 @@ public class SaveRunActivitiesCommandHandlerTests
 
         await _handler.Handle(cmd, CancellationToken.None);
 
-        _caloryRepoMock.Verify(
+        _energyRepoMock.Verify(
             r => r.DeleteActivityCaloriesForDateAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _customActivityRepoMock.Verify(
+            r => r.DeleteByEnergyLogIdsAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -96,7 +113,7 @@ public class SaveRunActivitiesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ImportMode_RunRow_AddsCaloryLog()
+    public async Task Handle_ImportMode_RunRow_AddsEnergyLog()
     {
         var rows = new List<RunActivityRowDto>
         {
@@ -105,13 +122,13 @@ public class SaveRunActivitiesCommandHandlerTests
 
         await _handler.Handle(new SaveRunActivitiesCommand(TestDate, rows, true), CancellationToken.None);
 
-        _caloryRepoMock.Verify(
+        _energyRepoMock.Verify(
             r => r.AddActivityAsync(TestDate, 320.0, "I run for 5.2km...", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_CustomRow_AddsCaloryLogAndCustomActivityLog()
+    public async Task Handle_CustomRow_AddsEnergyLogAndCustomActivityLog()
     {
         var rows = new List<RunActivityRowDto>
         {
@@ -120,7 +137,7 @@ public class SaveRunActivitiesCommandHandlerTests
 
         await _handler.Handle(new SaveRunActivitiesCommand(TestDate, rows, false), CancellationToken.None);
 
-        _caloryRepoMock.Verify(
+        _energyRepoMock.Verify(
             r => r.AddActivityAsync(TestDate, 200.0, "30 minute swim", It.IsAny<CancellationToken>()),
             Times.Once);
 

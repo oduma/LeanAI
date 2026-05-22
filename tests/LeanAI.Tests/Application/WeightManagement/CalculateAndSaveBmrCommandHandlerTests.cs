@@ -1,7 +1,6 @@
 using FluentAssertions;
 using LeanAI.Application.WeightManagement.Commands.CalculateAndSaveBmr;
-using LeanAI.Domain.FoodTracking.Entities;
-using LeanAI.Domain.FoodTracking.Interfaces;
+using LeanAI.Domain.EnergyTracking.Interfaces;
 using LeanAI.Domain.WeightManagement.Entities;
 using LeanAI.Domain.WeightManagement.Enums;
 using LeanAI.Domain.WeightManagement.Interfaces;
@@ -11,22 +10,22 @@ namespace LeanAI.Tests.Application.WeightManagement;
 
 public class CalculateAndSaveBmrCommandHandlerTests
 {
-    private readonly Mock<IAppSettingsRepository> _settingsRepoMock   = new();
-    private readonly Mock<IUserProfileRepository> _profileRepoMock    = new();
-    private readonly Mock<ICaloryLogRepository>   _caloryLogRepoMock  = new();
+    private readonly Mock<IAppSettingsRepository> _settingsRepoMock  = new();
+    private readonly Mock<IUserProfileRepository> _profileRepoMock   = new();
+    private readonly Mock<IEnergyLogRepository>   _energyLogRepoMock = new();
     private readonly CalculateAndSaveBmrCommandHandler _handler;
 
-    private static readonly DateOnly TestDate    = new(2026, 5, 20);
-    private static readonly double   TestWeight  = 80.0;
+    private static readonly DateOnly TestDate   = new(2026, 5, 20);
+    private static readonly double   TestWeight = 80.0;
 
     public CalculateAndSaveBmrCommandHandlerTests()
     {
         _handler = new CalculateAndSaveBmrCommandHandler(
             _settingsRepoMock.Object,
             _profileRepoMock.Object,
-            _caloryLogRepoMock.Object);
+            _energyLogRepoMock.Object);
 
-        _caloryLogRepoMock
+        _energyLogRepoMock
             .Setup(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
     }
@@ -48,7 +47,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
 
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
 
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -73,7 +72,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
 
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -86,7 +85,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
 
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
 
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -110,7 +109,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
         SetupFullProfile(Gender.Male);
 
         double? capturedCalories = null;
-        _caloryLogRepoMock
+        _energyLogRepoMock
             .Setup(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
             .Callback<DateOnly, double, CancellationToken>((_, cal, _) => capturedCalories = cal)
             .Returns(Task.CompletedTask);
@@ -118,7 +117,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
         capturedCalories.Should().BeApproximately(1738.75, precision: 0.01);
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(TestDate, It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Once);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(TestDate, It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -129,7 +128,7 @@ public class CalculateAndSaveBmrCommandHandlerTests
         SetupFullProfile(Gender.Female);
 
         double? capturedCalories = null;
-        _caloryLogRepoMock
+        _energyLogRepoMock
             .Setup(r => r.UpsertBmrAsync(It.IsAny<DateOnly>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
             .Callback<DateOnly, double, CancellationToken>((_, cal, _) => capturedCalories = cal)
             .Returns(Task.CompletedTask);
@@ -137,6 +136,6 @@ public class CalculateAndSaveBmrCommandHandlerTests
         await _handler.Handle(new CalculateAndSaveBmrCommand(TestDate, TestWeight), CancellationToken.None);
 
         capturedCalories.Should().BeApproximately(1582.75, precision: 0.01);
-        _caloryLogRepoMock.Verify(r => r.UpsertBmrAsync(TestDate, It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Once);
+        _energyLogRepoMock.Verify(r => r.UpsertBmrAsync(TestDate, It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -931,6 +931,84 @@ SetIsActiveForDateAsync(date, isActive)  → void (upsert)
 
 ---
 
+## Phase 13: DDD Boundary Refactor ✅ COMPLETE
+
+### Goal
+Restructure the codebase to align every entity, repository, and application use case with the bounded contexts defined in [DDD.md](DDD.md). This is a pure refactor — no user-visible behaviour changes.
+
+### Clarifications (agreed before planning)
+
+| # | Question | Decision |
+|---|----------|----------|
+| Q1 | Rename `CaloryLog` when moving to EnergyTracking? | **Yes — rename to `EnergyLog`.** Table renamed via migration; fixes the typo and aligns the name with its context. |
+| Q2 | Cross-context FK relationships: strict or pragmatic? | **Strict.** Remove EF Core FK constraints between contexts. All cross-context links become bare `Guid` columns. Cascade delete handled explicitly by Application-layer command handlers. |
+| Q3 | Split `RoutineItem.SourceType` discriminator? | **Yes — split into `RoutineFoodItem` and `RoutineActivityItem`.** Eliminates the red-flag string discriminator; each entity is typed to its context. |
+| Q4 | Where does `CustomActivityLog` land? | **`ActivityTracking`.** It describes a user activity, not a food item. |
+| Q5 | `CalculateAndSaveBmrCommand` / `GetBmrForDateQuery`: stay or move? | **Stay in `WeightManagement`.** BMR is triggered by weight save and driven by profile data; the cross-context write to `EnergyTracking` is acceptable Application-layer orchestration. |
+
+### Resulting Bounded Context Ownership
+
+| Artifact | Current context | Target context |
+|----------|----------------|----------------|
+| `CaloryLog` entity → `EnergyLog` | FoodTracking | **EnergyTracking** (new) |
+| `ICaloryLogRepository` → `IEnergyLogRepository` | FoodTracking | **EnergyTracking** |
+| `RoutineItem` entity → split | FoodTracking | **Routine** (new): `RoutineFoodItem` + `RoutineActivityItem` |
+| `DailyRoutineStatus` entity | FoodTracking | **Routine** |
+| `IRoutineRepository` | FoodTracking | **Routine** |
+| `CustomActivityLog` entity | FoodTracking | **ActivityTracking** |
+| `ICustomActivityLogRepository` | FoodTracking | **ActivityTracking** |
+| `GetTotalCaloriesForDateQuery` | FoodTracking | **EnergyTracking** |
+| `GetActivityCaloriesForDateQuery` | FoodTracking | **EnergyTracking** |
+| `ActivityCaloryLogDto` → `ActivityEnergyLogDto` | FoodTracking | **EnergyTracking** |
+| `GetRoutineItemsQuery` | FoodTracking | **Routine** |
+| `GetRoutineStatusForDateQuery` | FoodTracking | **Routine** |
+| `SaveRoutineFromDayCommand` | FoodTracking | **Routine** |
+| `ApplyRoutineForDateCommand` | FoodTracking | **Routine** |
+| `RemoveUnmodifiedRoutineItemsForDateCommand` | FoodTracking | **Routine** |
+| `RoutineItemDto` → split | FoodTracking | **Routine**: `RoutineFoodItemDto` + `RoutineActivityItemDto` |
+| `FoodLog` entity | FoodTracking | FoodTracking (stays; `CaloryLogId` → bare `EnergyLogId` Guid) |
+| `CalculateAndSaveBmrCommand` | WeightManagement | WeightManagement (stays) |
+| `GetBmrForDateQuery` | WeightManagement | WeightManagement (stays) |
+
+### Key Technical Rules for This Refactor
+
+1. **No cross-context FK constraints.** `FoodLog.EnergyLogId` and `CustomActivityLog.EnergyLogId` are bare nullable Guid columns — no EF Core `HasForeignKey` or `OnDelete(Cascade)` configuration.
+2. **Explicit cascade in Application layer.** Any command handler that deletes a record with a cross-context bare-Guid reference must explicitly delete the linked record in the other context's repository before (or after) deleting the primary record. The handler orchestrates; repositories do not cross context boundaries.
+3. **`EnergyLog.RoutineItemId`** remains a bare Guid. It references either a `RoutineFoodItem.Id` (when `SourceType = "food"`) or a `RoutineActivityItem.Id` (when `SourceType = "activity"`). The `SourceType` field disambiguates which Routine table to look in.
+4. **`IRoutineRepository.ReplaceAllAsync`** accepts both lists atomically: `(IReadOnlyList<RoutineFoodItem>, IReadOnlyList<RoutineActivityItem>)`.
+5. **`GetRoutineItemsQuery`** returns a `RoutineItemsResultDto { FoodItems, ActivityItems }` — two typed lists in one round trip.
+
+### EF Core Migration: `Refactor_DDD_Boundaries`
+
+Single migration covering all schema changes:
+- Rename table `CaloryLogs` → `EnergyLogs`
+- Rename column `FoodLogs.CaloryLogId` → `FoodLogs.EnergyLogId`; drop FK constraint
+- Rename column `CustomActivityLogs.CaloryLogId` → `CustomActivityLogs.EnergyLogId`; drop FK constraint
+- Create `RoutineFoodItems` table (`Id`, `Description`, `Quantity?`, `Calories`)
+- Create `RoutineActivityItems` table (`Id`, `Description`, `Calories`)
+- Data migration via raw SQL: copy `RoutineItems` rows into the appropriate new table by `SourceType`
+- Drop `RoutineItems` table
+- `EnergyLogs.RoutineItemId` column unchanged (already a bare Guid)
+
+### Definition of Done
+
+- ✅ `EnergyLog` entity and `IEnergyLogRepository` live in `LeanAI.Domain/EnergyTracking/`.
+- ✅ `RoutineFoodItem`, `RoutineActivityItem`, `DailyRoutineStatus`, and `IRoutineRepository` live in `LeanAI.Domain/Routine/`.
+- ✅ `CustomActivityLog` and `ICustomActivityLogRepository` live in `LeanAI.Domain/ActivityTracking/`.
+- ✅ `FoodTracking` domain contains only `FoodLog` and `IFoodLogRepository`.
+- ✅ No EF Core FK constraints cross bounded context boundaries (`FoodLog.EnergyLogId` and `CustomActivityLog.EnergyLogId` are plain bare-Guid columns).
+- ✅ Explicit cascade in Application-layer command handlers: handlers collect cross-context IDs and delete them via the owning context's repository before deleting primary records.
+- ✅ All Application commands/queries housed in the context that owns the primary concern.
+- ✅ EF Core migration `Refactor_DDD_Boundaries` applies cleanly — zero data loss on existing databases.
+- ✅ All tests updated to new namespaces and DTO types; 100% branch coverage maintained.
+- ✅ `dotnet build` → 0 errors. `dotnet test` → 209 / 209 tests green.
+
+### Corrections & Clarifications (implemented during Phase 13)
+
+- **Missing Designer file caused migration to be silently skipped.** `20260522000000_Refactor_DDD_Boundaries.Designer.cs` was not created alongside the migration class. EF Core requires the Designer file for the `[Migration("...")]` attribute that allows `Database.Migrate()` to discover and order the migration. Without it, `Migrate()` ran successfully but applied nothing, leaving the old `CaloryLogs` schema on device and crashing on the first query against `EnergyLogs`. Fix: created the Designer file with the correct `[Migration("20260522000000_Refactor_DDD_Boundaries")]` attribute and a `BuildTargetModel` matching the current model snapshot.
+
+---
+
 ## Open Issues
 
 ### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED

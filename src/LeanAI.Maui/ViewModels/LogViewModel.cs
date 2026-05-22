@@ -2,7 +2,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using LeanAI.Application.FoodTracking.Queries.GetTotalCaloriesForDate;
+using LeanAI.Application.EnergyTracking.Queries.GetTotalCaloriesForDate;
 using LeanAI.Application.WeightManagement.Commands.CalculateAndSaveBmr;
 using LeanAI.Application.WeightManagement.Commands.UpsertDailyLog;
 using LeanAI.Application.WeightManagement.Queries.GetLogContext;

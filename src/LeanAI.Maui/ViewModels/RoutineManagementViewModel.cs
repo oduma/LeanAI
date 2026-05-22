@@ -2,10 +2,11 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LeanAI.Application.ActivityTracking.Commands.EstimateActivityCalories;
-using LeanAI.Application.FoodTracking.Commands.SaveRoutineFromDay;
-using LeanAI.Application.FoodTracking.DTOs;
 using LeanAI.Application.FoodTracking.Commands.RecalculateCalories;
-using LeanAI.Application.FoodTracking.Queries.GetRoutineItems;
+using LeanAI.Application.FoodTracking.DTOs;
+using LeanAI.Application.Routine.Commands.SaveRoutineFromDay;
+using LeanAI.Application.Routine.DTOs;
+using LeanAI.Application.Routine.Queries.GetRoutineItems;
 using MediatR;
 using Microsoft.Maui.Controls;
 
@@ -18,21 +19,21 @@ public partial class RoutineManagementViewModel(IMediator mediator) : Observable
 
     public async Task InitialiseAsync()
     {
-        var items = await mediator.Send(new GetRoutineItemsQuery());
+        var result = await mediator.Send(new GetRoutineItemsQuery());
 
         FoodItems.Clear();
-        foreach (var item in items.Where(i => i.SourceType == "food"))
+        foreach (var item in result.FoodItems)
             FoodItems.Add(new RoutineFoodItemViewModel
             {
-                OriginalId  = item.Id,
-                FoodItem    = item.Description,
-                Quantity    = item.Quantity ?? string.Empty,
-                Calories    = item.Calories,
-                IsChecked   = true
+                OriginalId = item.Id,
+                FoodItem   = item.Description,
+                Quantity   = item.Quantity ?? string.Empty,
+                Calories   = item.Calories,
+                IsChecked  = true
             });
 
         ActivityItems.Clear();
-        foreach (var item in items.Where(i => i.SourceType == "activity"))
+        foreach (var item in result.ActivityItems)
             ActivityItems.Add(new RoutineActivityItemViewModel
             {
                 OriginalId  = item.Id,
@@ -56,7 +57,6 @@ public partial class RoutineManagementViewModel(IMediator mediator) : Observable
         var checkedFood       = FoodItems.Where(i => i.IsChecked).ToList();
         var checkedActivities = ActivityItems.Where(i => i.IsChecked).ToList();
 
-        // Evaluate calories for food items that have none
         var foodWithNoCalories = checkedFood.Where(i => i.Calories <= 0).ToList();
         if (foodWithNoCalories.Count > 0)
         {
@@ -66,7 +66,6 @@ public partial class RoutineManagementViewModel(IMediator mediator) : Observable
                 foodWithNoCalories[idx].Calories = results[idx].Calories;
         }
 
-        // Evaluate calories for activity items that have none
         var actWithNoCalories = checkedActivities.Where(i => i.Calories <= 0).ToList();
         if (actWithNoCalories.Count > 0)
         {
@@ -76,13 +75,15 @@ public partial class RoutineManagementViewModel(IMediator mediator) : Observable
                 actWithNoCalories[idx].Calories = estimates[idx];
         }
 
-        var dtos = checkedFood
-            .Select(i => new RoutineItemDto(Guid.Empty, "food", i.FoodItem, string.IsNullOrWhiteSpace(i.Quantity) ? null : i.Quantity, i.Calories))
-            .Concat(checkedActivities
-                .Select(i => new RoutineItemDto(Guid.Empty, "activity", i.Description, null, i.Calories)))
+        var foodDtos = checkedFood
+            .Select(i => new RoutineFoodItemDto(Guid.Empty, i.FoodItem, string.IsNullOrWhiteSpace(i.Quantity) ? null : i.Quantity, i.Calories))
             .ToList();
 
-        await mediator.Send(new SaveRoutineFromDayCommand(dtos));
+        var activityDtos = checkedActivities
+            .Select(i => new RoutineActivityItemDto(Guid.Empty, i.Description, i.Calories))
+            .ToList();
+
+        await mediator.Send(new SaveRoutineFromDayCommand(foodDtos, activityDtos));
         await Shell.Current.Navigation.PopModalAsync();
     }
 
