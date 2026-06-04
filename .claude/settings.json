@@ -38,7 +38,13 @@
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Application\\\\Routine\\\\Commands\\\\RemoveUnmodifiedRoutineItems\")",
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Code\\\\LeanAI\\\\tests\\\\LeanAI.Tests\\\\Application\\\\EnergyTracking\\\\Queries\")",
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Code\\\\LeanAI\\\\tests\\\\LeanAI.Tests\\\\Application\\\\Routine\\\\Queries\")",
-      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Code\\\\LeanAI\\\\tests\\\\LeanAI.Tests\\\\Application\\\\Routine\\\\Commands\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Code\\\\LeanAI\\\\tests\\\\LeanAI.Tests\\\\Application\\\\Routine\\\\Commands\")",
+      "Bash(powershell -Command \"Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead\\('z-com-ai\\\\iconkitchen-output.zip'\\).Entries | Select-Object FullName | Format-Table -AutoSize\")",
+      "PowerShell($zipPath = \"c:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\iconkitchen-output.zip\"; $extractPath = \"c:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\iconkitchen-output\"; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory\\($zipPath, $extractPath, $true\\); Write-Host \"Extracted successfully\")",
+      "Bash(Get-ChildItem -Recurse \"c:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\iconkitchen-output\")",
+      "Bash(powershell -Command \"\\(Get-Content 'c:\\\\Code\\\\LeanAI\\\\docs\\\\requirements\\\\FUNCTIONAL_REQUIREMENTS.md'\\).Count\")",
+      "PowerShell(Copy-Item -Path \"c:\\\\Code\\\\LeanAI\\\\z-com-ai\\\\iconkitchen-output\\\\android\\\\play_store_512.png\" -Destination \"c:\\\\Code\\\\LeanAI\\\\src\\\\LeanAI.Maui\\\\Resources\\\\AppIcon\\\\play_store_512.png\" -Force)",
+      "Bash(xargs grep -l -i \"gemini\\\\|image.*analysis\\\\|vision\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\scien\\.claude\\projects\\c--Code-LeanAI\\memory"

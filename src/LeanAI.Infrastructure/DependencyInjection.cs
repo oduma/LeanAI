@@ -1,5 +1,6 @@
 using LeanAI.Application.ActivityTracking.Services;
 using LeanAI.Application.FoodTracking.Services;
+using LeanAI.Application.Shared.Services;
 using LeanAI.Application.WeightManagement.Services;
 using LeanAI.Domain.ActivityTracking.Interfaces;
 using LeanAI.Domain.EnergyTracking.Interfaces;
@@ -13,6 +14,7 @@ using LeanAI.Infrastructure.EnergyTracking.Repositories;
 using LeanAI.Infrastructure.FoodTracking.Repositories;
 using LeanAI.Infrastructure.FoodTracking.Services;
 using LeanAI.Infrastructure.Persistence;
+using LeanAI.Infrastructure.Shared.Services;
 using LeanAI.Infrastructure.Repositories;
 using LeanAI.Infrastructure.Routine.Repositories;
 using LeanAI.Infrastructure.Services;
@@ -61,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IRoutineRepository, RoutineRepository>();
         services.AddTransient<IFoodImageAnalysisService, GeminiFoodImageAnalysisService>();
         services.AddSingleton<FoodImportStateService>();
+        services.AddTransient<IShareImageClassificationService, GeminiShareImageClassificationService>();
 
         services.AddHttpClient<GoogleOAuthService>();
         services.AddSingleton<IGoogleSheetsService, GoogleSheetsService>();

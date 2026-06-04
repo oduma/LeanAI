@@ -1009,18 +1009,66 @@ Single migration covering all schema changes:
 
 ---
 
+## Phase 14: App Icon Replacement (IconKitchen Assets) ✅ COMPLETE
+
+- **Goal:** Replace the MAUI resizetizer-generated launcher icon with a professionally designed, pre-built icon set from IconKitchen, fully resolving the monochrome themed-icon regression on Android 13+ (Pixel 10).
+- **Functional Requirements:**
+    - The app launcher icon must display the LeanAI brand icon in full color on home screens and app drawers.
+    - On Android 13+ with "Themed icons" enabled, the icon must display a correct monochrome silhouette tinted to the system wallpaper accent color — not a white square.
+    - The adaptive icon must use the three-layer Android standard: background image, foreground image, and monochrome image (all PNG, all pre-built at every density).
+    - The 512×512 Play Store icon must be preserved in the project at `Resources/AppIcon/play_store_512.png`.
+- **Technical Specs:**
+    - **Bypass MAUI resizetizer:** Remove `<MauiIcon>` from `LeanAI.Maui.csproj`. MAUI's resizetizer produces only two layers (foreground + solid-color background) with no proper monochrome PNG — it cannot produce all three layers from a single source.
+    - **Use native Android resources:** Copy the pre-built iconkitchen PNG files into `Platforms/Android/Resources/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/` for each of the four icon variants (`ic_launcher.png`, `ic_launcher_foreground.png`, `ic_launcher_background.png`, `ic_launcher_monochrome.png`).
+    - **Adaptive icon XML:** Place `mipmap-anydpi-v26/ic_launcher.xml` (references foreground, background, and monochrome layers) in `Platforms/Android/Resources/mipmap-anydpi-v26/`. Using `v26` (not `v33`) ensures adaptive icons are active from Android 8.0+; the `<monochrome>` element is silently ignored by API < 33.
+    - **Standard naming:** Use `ic_launcher` naming from iconkitchen. Update `AndroidManifest.xml`: `android:icon="@mipmap/ic_launcher"`, `android:roundIcon="@mipmap/ic_launcher"`.
+    - **Remove old assets:** Delete `Resources/AppIcon/leanai_icon.png`, `Resources/AppIcon/appicon.svg`, `Resources/AppIcon/appiconfg.svg`, `Platforms/Android/Resources/mipmap-anydpi-v33/leanai_icon.xml`, `Platforms/Android/Resources/drawable/leanai_icon_monochrome.xml`.
+- **Definition of Done (DoD):**
+    - ✅ `dotnet build` → 0 errors.
+    - ✅ Deployed to Pixel 10: full-color icon visible on home screen.
+    - ✅ Deployed to Pixel 10 with "Themed icons" on: monochrome silhouette visible (not a white square).
+    - ✅ Play Store 512px icon present at `Resources/AppIcon/play_store_512.png`.
+    - ✅ All 209 existing tests remain green.
+
+---
+
+## Phase 15: Unified Share with LeanAI ✅ COMPLETE
+
+- **Goal:** Collapse the two Android share endpoints ("Import Food" and "Import Run") into a single share target — "Share with LeanAI" — and use Gemini to automatically classify the shared image as a food photo or a run screenshot, routing it to the correct review flow.
+- **Functional Requirements:**
+    - The Android share sheet shows exactly one LeanAI entry: **"Share with LeanAI"**.
+    - When a food photo is shared, LeanAI identifies it, extracts food items and calories, and opens `FoodReviewPage` — identical to the existing food import flow.
+    - When a run screenshot (from any fitness app — MapMyRun, Strava, Garmin, Nike Run Club, etc.) is shared, LeanAI identifies it, extracts run metrics, and opens `RunReviewPage` — identical to the existing run import flow.
+    - When the image cannot be classified as either food or a run screenshot, a brief toast is shown: *"Couldn't identify this image. Share a food photo or a run screenshot."* and the activity closes. No data is saved.
+    - The classification is performed automatically by Gemini — the user is never asked to select the type manually.
+    - The loading screen displays a generic label ("Analysing your image…") while Gemini processes the image.
+- **Technical Specs:**
+    - **Two-step classification:** A new first Gemini call classifies the image (`food` | `run` | `unknown`). The existing `AnalyzeFoodImageCommand` or `AnalyzeRunImageCommand` is then called as the second step. This keeps the classification logic isolated and the existing analyzers unchanged.
+    - **Application-layer service interface:** `IShareImageClassificationService` and `ShareImageType` enum live in `LeanAI.Application.Shared` (not Domain) — matching the existing pattern where AI service interfaces (`IFoodImageAnalysisService`, `IRunImageAnalysisService`) live in the Application layer.
+    - **New Application command:** `ClassifyShareImageCommand(byte[] ImageBytes, string MimeType)` → `ShareImageType`, handled by `ClassifyShareImageCommandHandler`.
+    - **New Infrastructure service:** `GeminiShareImageClassificationService` implements `IShareImageClassificationService`. Prompt instructs Gemini to respond with exactly one word: `food`, `run`, or `unknown`. Exceptions during classification return `Unknown` (graceful degradation).
+    - **New Android Activity:** `ShareWithLeanAIActivity` replaces both `ImportFoodActivity` and `ImportRunActivity`. Single intent filter: `ACTION_SEND`, `image/*`.
+    - **DI:** Register `IShareImageClassificationService → GeminiShareImageClassificationService` as Transient in `DependencyInjection.cs`.
+    - **Delete:** `Platforms/Android/ImportFoodActivity.cs`, `Platforms/Android/ImportRunActivity.cs`.
+    - **UX fix — immediate modal:** `LogViewModel.LoadLogAsync` now checks for pending imports before `LoadCoreAsync`. When a pending import exists, `LoadCoreAsync` is fired in the background and the review modal is pushed immediately — the log screen never becomes interactive before the review page appears.
+    - **Run analysis prompt scope:** The existing `GeminiRunImageAnalysisService` prompt was already app-agnostic; no changes were needed.
+- **Definition of Done (DoD):**
+    - ✅ `dotnet build` → 0 errors.
+    - ✅ `dotnet test` → 225 / 225 green (+16 new tests).
+    - ✅ Android share sheet shows exactly one LeanAI entry: "Share with LeanAI".
+    - ✅ Sharing a food photo routes to `FoodReviewPage` with items pre-populated.
+    - ✅ Sharing a run screenshot routes to `RunReviewPage` with metrics pre-populated.
+    - ✅ Sharing an unrelated image shows the error toast and does not open the app.
+    - ✅ Review modal appears immediately without the log screen becoming interactive first.
+
+### Corrections & Clarifications (implemented during Phase 15)
+
+- **Service interfaces in Application, not Domain.** The plan placed `IShareImageClassificationService` and `ShareImageType` in `LeanAI.Domain.Shared`. During implementation it was found that all existing AI service interfaces (`IFoodImageAnalysisService`, `IRunImageAnalysisService`) live in the Application layer. Both were moved to `LeanAI.Application.Shared` to match the established pattern.
+- **Additional Infrastructure parse tests added.** `GeminiShareImageClassificationServiceTests` was added (10 theory tests for `ParseResponse`) in addition to the 3 planned handler tests, bringing the total new test count to 16.
+- **`LogViewModel.LoadLogAsync` reordered.** After deployment it was observed that the log screen loaded and became interactive before the review modal appeared. Fixed by checking `HasPending` first and firing `LoadCoreAsync` in the background so the modal is pushed immediately.
+
+---
+
 ## Open Issues
 
-### Launcher Icon — Monochrome Themed Icon ⚠️ UNRESOLVED
-
-**Issue:** On Android 13+ (e.g., Pixel 10) with "Themed icons" enabled, the LeanAI launcher icon renders as a white rounded square instead of a tinted silhouette of the weight-scale icon.
-
-**Root cause:** Without a `<monochrome>` element in the adaptive icon XML, Android falls back to a white disc/square.
-
-**Attempted fix (2026-05-17–18):**
-- Added `Platforms/Android/Resources/mipmap-anydpi-v33/leanai_icon.xml` — adaptive icon XML for Android 13+ with `<background>`, `<foreground>`, and `<monochrome>` elements.
-- Added `Platforms/Android/Resources/drawable/leanai_icon_monochrome.xml` — Android `VectorDrawable` silhouette of the scale (outer rounded-rect frame via `fillType="evenOdd"` + circle for the display).
-- Added `ic_launcher_background` (`#222222`) to `colors.xml`.
-- Deleted `Resources/AppIcon/leanai_icon_foreground.svg` (had been inadvertently auto-detected by MAUI's resizetizer, overriding the copper foreground PNG with a white silhouette).
-
-**Current status:** Icon still renders as white rounded square in both colour and monochrome modes. Root cause not yet fully identified. **Deferred — to be revisited.**
+*(Previously tracked: Launcher Icon — Monochrome Themed Icon — resolved by Phase 14.)*

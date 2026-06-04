@@ -1,8 +1,14 @@
 using Android.App;
+using Android.Content;
 using Android.Views;
 using Android.Widget;
+using LeanAI.Application.ActivityTracking.Commands.AnalyzeRunImage;
+using LeanAI.Application.ActivityTracking.DTOs;
 using LeanAI.Application.FoodTracking.Commands.AnalyzeFoodImage;
+using LeanAI.Application.Shared;
+using LeanAI.Application.Shared.Commands.ClassifyShareImage;
 using LeanAI.Infrastructure;
+using LeanAI.Infrastructure.ActivityTracking.Services;
 using LeanAI.Infrastructure.FoodTracking.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,13 +16,13 @@ using Microsoft.Maui;
 
 namespace LeanAI.Maui.Platforms.Android;
 
-[Activity(Label = "Import Food", Exported = true)]
+[Activity(Label = "Share with LeanAI", Exported = true)]
 [IntentFilter(
     new[] { global::Android.Content.Intent.ActionSend },
     Categories = new[] { global::Android.Content.Intent.CategoryDefault },
     DataMimeType = "image/*",
-    Label = "Import Food")]
-public class ImportFoodActivity : Activity
+    Label = "Share with LeanAI")]
+public class ShareWithLeanAIActivity : Activity
 {
     private const string GeminiKeyStorageKey = "gemini_key";
 
@@ -46,10 +52,10 @@ public class ImportFoodActivity : Activity
             imageBytes = ms.ToArray();
         }
 
-        var services    = IPlatformApplication.Current!.Services;
-        var mediator    = services.GetRequiredService<IMediator>();
-        var stateService = services.GetRequiredService<FoodImportStateService>();
-        var date        = DateOnly.FromDateTime(DateTime.Today);
+        var services         = IPlatformApplication.Current!.Services;
+        var mediator         = services.GetRequiredService<IMediator>();
+        var foodImportState  = services.GetRequiredService<FoodImportStateService>();
+        var runImportState   = services.GetRequiredService<RunImportStateService>();
 
         Task.Run(async () =>
         {
@@ -59,18 +65,58 @@ public class ImportFoodActivity : Activity
                 if (!string.IsNullOrEmpty(apiKey))
                     services.GetRequiredService<GeminiKeyHolder>().ApiKey = apiKey;
 
-                var items = await mediator.Send(
-                    new AnalyzeFoodImageCommand(imageBytes, mimeType, date));
+                var imageType = await mediator.Send(
+                    new ClassifyShareImageCommand(imageBytes, mimeType));
 
-                stateService.Set(items);
+                switch (imageType)
+                {
+                    case ShareImageType.Food:
+                    {
+                        var date  = DateOnly.FromDateTime(DateTime.Today);
+                        var items = await mediator.Send(
+                            new AnalyzeFoodImageCommand(imageBytes, mimeType, date));
 
-                var intent = new global::Android.Content.Intent(
-                    this, typeof(global::LeanAI.Maui.MainActivity));
-                intent.AddFlags(global::Android.Content.ActivityFlags.NewTask |
-                                global::Android.Content.ActivityFlags.SingleTop);
-                StartActivity(intent);
+                        foodImportState.Set(items);
 
-                RunOnUiThread(Finish);
+                        var intent = new Intent(this, typeof(MainActivity));
+                        intent.AddFlags(ActivityFlags.NewTask | ActivityFlags.SingleTop);
+                        StartActivity(intent);
+                        RunOnUiThread(Finish);
+                        break;
+                    }
+
+                    case ShareImageType.Run:
+                    {
+                        var result = await mediator.Send(
+                            new AnalyzeRunImageCommand(imageBytes, mimeType));
+
+                        var row = new RunActivityRowDto(
+                            result.ActivityText,
+                            result.CaloriesBurned,
+                            IsRunRow: true,
+                            result.Metrics);
+
+                        runImportState.Set([row]);
+
+                        var intent = new Intent(this, typeof(MainActivity));
+                        intent.AddFlags(ActivityFlags.NewTask | ActivityFlags.SingleTop);
+                        StartActivity(intent);
+                        RunOnUiThread(Finish);
+                        break;
+                    }
+
+                    default:
+                        RunOnUiThread(() =>
+                        {
+                            Toast.MakeText(
+                                    this,
+                                    "Couldn't identify this image. Share a food photo or a run screenshot.",
+                                    ToastLength.Long)!
+                                 .Show();
+                            Finish();
+                        });
+                        break;
+                }
             }
             catch
             {
@@ -78,7 +124,7 @@ public class ImportFoodActivity : Activity
                 {
                     Toast.MakeText(
                             this,
-                            "Could not analyse the meal — please try again.",
+                            "Could not process the image — please try again.",
                             ToastLength.Long)!
                          .Show();
                     Finish();
@@ -132,7 +178,7 @@ public class ImportFoodActivity : Activity
 
         var label = new TextView(this)
         {
-            Text     = "Analysing your meal…",
+            Text     = "Analysing your image…",
             TextSize = 15f,
             Gravity  = GravityFlags.Center
         };

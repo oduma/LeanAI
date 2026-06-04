@@ -20,8 +20,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\leanai_icon.png" Color="#222222" />
+		<!-- App Icon is provided as pre-built Android resources in Platforms/Android/Resources/mipmap-* -->
 
 		<!-- Splash Screen -->
 		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#222222" BaseSize="512,512" />

@@ -109,13 +109,24 @@ public partial class LogViewModel : ObservableObject, IRecipient<FoodSavedMessag
     {
         // Guard: if the date was already set via LoadForDateAsync (modal path), skip the tab-flow re-load.
         if (_dateWasExplicitlySet) return;
-        await LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
 
+        // When a share import is pending, push the review modal immediately without waiting
+        // for the log to load — the log loads in the background while the user is on the modal.
         if (_foodImportState.HasPending)
+        {
+            _ = LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
             await NavigateToFoodReviewAsync(isImportMode: true);
+            return;
+        }
 
         if (_runImportState.HasPending)
+        {
+            _ = LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
             await NavigateToRunReviewAsync(isImportMode: true);
+            return;
+        }
+
+        await LoadCoreAsync(DateOnly.FromDateTime(DateTime.Today));
     }
 
     [RelayCommand]
